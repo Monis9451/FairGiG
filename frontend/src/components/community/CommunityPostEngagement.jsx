@@ -29,44 +29,46 @@ export function CommunityPostEngagement({ post }) {
   const votingThis = toggleUpvote.isPending && toggleUpvote.variables === post.id
 
   return (
-    <div className="border-t border-brand-light/90 pt-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          disabled={votingThis}
-          onClick={() => toggleUpvote.mutate(post.id)}
-          className={cn(
-            'inline-flex items-center gap-1.5 rounded-full border-2 px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition-colors disabled:opacity-50',
-            upvoted
-              ? 'border-brand-primary bg-brand-primary text-brand-light'
-              : 'border-brand-muted bg-white text-brand-darkest hover:border-brand-primary/60 hover:bg-brand-primary/5'
-          )}
-        >
-          <ThumbsUp className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
-          <span>{upvoteCount}</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setOpen((o) => !o)}
-          className={cn(
-            'inline-flex items-center gap-1.5 rounded-full border-2 px-3 py-1.5 text-xs font-bold uppercase tracking-wide transition-colors',
-            open
-              ? 'border-brand-dark bg-brand-dark text-brand-light'
-              : 'border-brand-muted bg-white text-brand-darkest hover:border-brand-dark/40'
-          )}
-        >
-          <MessageCircle className="h-3.5 w-3.5" strokeWidth={2.5} aria-hidden />
-          <span>{commentCount}</span>
-        </button>
+    <div className="border-t border-brand-light/90 pt-3 sm:pt-4">
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+        <div className="flex w-full gap-2 sm:w-auto">
+          <button
+            type="button"
+            disabled={votingThis}
+            onClick={() => toggleUpvote.mutate(post.id)}
+            className={cn(
+              'inline-flex min-h-[44px] flex-1 touch-manipulation items-center justify-center gap-2 rounded-2xl border-2 px-4 text-xs font-bold uppercase tracking-wide transition-all active:scale-[0.98] disabled:opacity-50 sm:min-h-0 sm:flex-initial sm:rounded-full sm:py-2',
+              upvoted
+                ? 'border-brand-primary bg-brand-primary text-brand-light shadow-sm shadow-brand-primary/20'
+                : 'border-brand-muted/90 bg-white text-brand-darkest hover:border-brand-primary/50 hover:bg-brand-primary/5'
+            )}
+          >
+            <ThumbsUp className="h-4 w-4 shrink-0 sm:h-3.5 sm:w-3.5" strokeWidth={2.5} aria-hidden />
+            <span className="tabular-nums">{upvoteCount}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setOpen((o) => !o)}
+            className={cn(
+              'inline-flex min-h-[44px] flex-1 touch-manipulation items-center justify-center gap-2 rounded-2xl border-2 px-4 text-xs font-bold uppercase tracking-wide transition-all active:scale-[0.98] sm:min-h-0 sm:flex-initial sm:rounded-full sm:py-2',
+              open
+                ? 'border-brand-dark bg-brand-dark text-brand-light shadow-sm'
+                : 'border-brand-muted/90 bg-white text-brand-darkest hover:border-brand-dark/35'
+            )}
+          >
+            <MessageCircle className="h-4 w-4 shrink-0 sm:h-3.5 sm:w-3.5" strokeWidth={2.5} aria-hidden />
+            <span className="tabular-nums">{commentCount}</span>
+          </button>
+        </div>
         {toggleUpvote.isError ? (
-          <span className="text-xs text-brand-muted">
+          <span className="text-xs text-brand-muted sm:flex-1">
             {toggleUpvote.error?.response?.data?.error || 'Could not update upvote.'}
           </span>
         ) : null}
       </div>
 
       {open ? (
-        <div className="mt-3 rounded-xl border border-brand-muted/80 bg-brand-light/40 p-3">
+        <div className="mt-3 rounded-2xl border border-brand-muted/70 bg-brand-light/50 p-3 shadow-inner shadow-brand-darkest/[0.03] sm:mt-4 sm:p-4">
           {commentsQuery.isLoading ? (
             <p className="text-xs text-brand-muted">Loading comments…</p>
           ) : commentsQuery.isError ? (
@@ -74,7 +76,7 @@ export function CommunityPostEngagement({ post }) {
               {commentsQuery.error?.response?.data?.error || 'Comments failed to load.'}
             </p>
           ) : (
-            <ul className="mb-3 max-h-48 space-y-2 overflow-y-auto text-sm">
+            <ul className="mb-3 max-h-52 space-y-2 overflow-y-auto overscroll-contain text-sm">
               {(commentsQuery.data || []).length === 0 ? (
                 <li className="text-xs text-brand-muted">No comments yet. Be the first.</li>
               ) : (
@@ -96,10 +98,10 @@ export function CommunityPostEngagement({ post }) {
             <textarea
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
-              rows={2}
+              rows={3}
               maxLength={4000}
               placeholder="Add a comment (anonymous in the feed)"
-              className="min-h-[2.75rem] w-full flex-1 rounded-md border-2 border-brand-primary bg-white px-3 py-2 text-sm text-brand-darkest placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-primary"
+              className="min-h-[5rem] w-full flex-1 resize-y rounded-xl border-2 border-brand-primary/80 bg-white px-3 py-2.5 text-base text-brand-darkest placeholder:text-brand-muted focus:outline-none focus:ring-2 focus:ring-brand-primary/35 sm:min-h-[2.75rem] sm:text-sm"
             />
             <Button
               type="button"
@@ -110,7 +112,7 @@ export function CommunityPostEngagement({ post }) {
                   { onSuccess: () => setDraft('') }
                 )
               }
-              className="h-10 shrink-0 rounded-full border-2 border-brand-primary bg-brand-primary px-5 text-xs font-bold uppercase tracking-wider text-brand-light hover:opacity-90 disabled:opacity-50"
+              className="min-h-[48px] w-full shrink-0 touch-manipulation rounded-2xl border-2 border-brand-primary bg-brand-primary px-5 text-xs font-bold uppercase tracking-wider text-brand-light hover:opacity-90 active:scale-[0.99] disabled:opacity-50 sm:h-10 sm:w-auto sm:rounded-full"
             >
               {addComment.isPending ? 'Posting…' : 'Post'}
             </Button>

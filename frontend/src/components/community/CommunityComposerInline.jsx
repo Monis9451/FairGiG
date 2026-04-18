@@ -80,11 +80,11 @@ export function CommunityComposerInline({ className }) {
   return (
     <section
       className={cn(
-        'rounded-2xl border border-brand-muted bg-white p-4 shadow-md shadow-brand-darkest/5 sm:p-5',
+        'overflow-hidden rounded-2xl border border-brand-muted/80 bg-white/95 shadow-md shadow-brand-darkest/[0.07] backdrop-blur-sm sm:rounded-3xl sm:p-0.5',
         className
       )}
     >
-      <form onSubmit={handleSubmit(onSubmit)}>
+      <form onSubmit={handleSubmit(onSubmit)} className="p-4 sm:p-5">
         <div className="flex gap-3 sm:gap-4">
           <ComposerAvatar />
           <div className="min-w-0 flex-1 space-y-3">
@@ -94,10 +94,10 @@ export function CommunityComposerInline({ className }) {
               </label>
               <textarea
                 id="inline-composer-body"
-                rows={3}
+                rows={4}
                 {...register('body')}
                 placeholder="What do you want to share? Rate intel, platform issues, tips — your name stays private in the feed."
-                className="w-full resize-y rounded-xl border-2 border-brand-muted bg-brand-light/40 px-4 py-3 text-sm text-brand-darkest placeholder:text-brand-muted focus:border-brand-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary/30"
+                className="w-full resize-y rounded-xl border-2 border-brand-muted/90 bg-brand-light/35 px-3 py-3 text-base leading-relaxed text-brand-darkest placeholder:text-brand-muted focus:border-brand-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary/25 sm:px-4 sm:text-sm"
               />
               {errors.body ? (
                 <p className="mt-1 text-xs text-amber-800">{errors.body.message}</p>
@@ -107,7 +107,7 @@ export function CommunityComposerInline({ className }) {
             <button
               type="button"
               onClick={() => setShowExtras((v) => !v)}
-              className="flex items-center gap-1 text-xs font-semibold text-brand-primary hover:underline"
+              className="flex min-h-[44px] touch-manipulation items-center gap-1 rounded-lg px-1 text-left text-xs font-semibold text-brand-primary hover:bg-brand-primary/5 hover:underline active:bg-brand-primary/10 sm:min-h-0"
             >
               {showExtras ? (
                 <>
@@ -128,40 +128,60 @@ export function CommunityComposerInline({ className }) {
                   <label htmlFor="inline-composer-title" className="mb-1 block text-xs font-semibold text-brand-dark">
                     Headline (optional)
                   </label>
-                  <Input id="inline-composer-title" {...register('title')} placeholder="Short title" />
+                  <Input
+                    id="inline-composer-title"
+                    {...register('title')}
+                    placeholder="Short title"
+                    className="min-h-11 text-base sm:text-sm"
+                  />
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
                     <label htmlFor="inline-composer-platform" className="mb-1 block text-xs font-semibold text-brand-dark">
                       Platform
                     </label>
-                    <Input id="inline-composer-platform" {...register('platform')} placeholder="e.g. Foodpanda" />
+                    <Input
+                      id="inline-composer-platform"
+                      {...register('platform')}
+                      placeholder="e.g. Foodpanda"
+                      className="min-h-11 text-base sm:text-sm"
+                    />
                   </div>
                   <div>
                     <label htmlFor="inline-composer-category" className="mb-1 block text-xs font-semibold text-brand-dark">
                       Category
                     </label>
-                    <Input id="inline-composer-category" {...register('category')} placeholder="default: general" />
+                    <Input
+                      id="inline-composer-category"
+                      {...register('category')}
+                      placeholder="default: general"
+                      className="min-h-11 text-base sm:text-sm"
+                    />
                   </div>
                 </div>
                 <div>
                   <label htmlFor="inline-composer-tags" className="mb-1 block text-xs font-semibold text-brand-dark">
                     Tags
                   </label>
-                  <Input id="inline-composer-tags" {...register('tags')} placeholder="Comma-separated" />
+                  <Input
+                    id="inline-composer-tags"
+                    {...register('tags')}
+                    placeholder="Comma-separated"
+                    className="min-h-11 text-base sm:text-sm"
+                  />
                 </div>
               </div>
             ) : null}
 
-            <div className="flex flex-col gap-3 border-t border-brand-light pt-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-xs text-brand-muted">
+            <div className="flex flex-col gap-3 border-t border-brand-light/90 pt-3 sm:flex-row sm:items-center sm:justify-between sm:pt-4">
+              <p className="text-[11px] leading-relaxed text-brand-muted sm:text-xs">
                 Posts go to <strong className="text-brand-dark">pending</strong> until an advocate approves them for the
                 feed.
               </p>
               <Button
                 type="submit"
                 disabled={createPost.isPending || !hasDraft}
-                className="h-10 shrink-0 rounded-full border-2 border-brand-primary bg-brand-primary px-8 text-xs font-bold uppercase tracking-wider text-brand-light hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                className="min-h-[48px] w-full touch-manipulation rounded-2xl border-2 border-brand-primary bg-brand-primary px-8 text-xs font-bold uppercase tracking-wider text-brand-light hover:opacity-90 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 sm:h-11 sm:w-auto sm:rounded-full"
               >
                 {createPost.isPending ? 'Posting…' : 'Post'}
               </Button>

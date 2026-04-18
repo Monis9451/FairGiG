@@ -40,22 +40,26 @@ export function DashboardHeader({ title, subtitle, backHref, backLabel = 'Dashbo
   }
 
   return (
-    <header className="border-b border-brand-dark/80 bg-brand-darkest text-brand-light">
-      <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
-        <div className="flex min-w-0 items-center gap-3">
+    <header className="sticky top-0 z-40 border-b border-brand-dark/80 bg-brand-darkest/95 text-brand-light backdrop-blur-md supports-[backdrop-filter]:bg-brand-darkest/90">
+      <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-2 px-3 py-2.5 sm:gap-3 sm:px-5 sm:py-3 md:px-6">
+        <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">
           <LogoMark />
-          <div className="min-w-0">
-            <h1 className="truncate text-lg font-extrabold tracking-tight sm:text-xl">{title}</h1>
+          <div className="min-w-0 py-0.5">
+            <h1 className="truncate text-base font-extrabold leading-tight tracking-tight sm:text-lg md:text-xl">
+              {title}
+            </h1>
             {subtitle ? (
-              <p className="truncate text-xs text-brand-light/75 sm:text-sm">{subtitle}</p>
+              <p className="line-clamp-2 text-[11px] leading-snug text-brand-light/75 sm:line-clamp-1 sm:text-xs md:text-sm">
+                {subtitle}
+              </p>
             ) : null}
           </div>
         </div>
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex w-full shrink-0 items-center justify-end gap-2 sm:w-auto sm:justify-start sm:gap-2.5">
           {backHref ? (
             <Link
               to={backHref}
-              className="rounded-full border border-brand-light/40 px-3 py-1.5 text-xs font-semibold text-brand-light transition-colors hover:bg-brand-light/10 sm:px-4 sm:text-sm"
+              className="inline-flex min-h-[44px] min-w-[44px] touch-manipulation items-center justify-center rounded-full border border-brand-light/40 px-4 text-xs font-semibold text-brand-light transition-colors hover:bg-brand-light/10 active:scale-[0.98] sm:min-h-0 sm:min-w-0 sm:px-4 sm:text-sm"
             >
               {backLabel}
             </Link>
@@ -63,7 +67,7 @@ export function DashboardHeader({ title, subtitle, backHref, backLabel = 'Dashbo
           <button
             type="button"
             onClick={handleLogout}
-            className="rounded-full border-2 border-brand-light/80 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-brand-light transition-colors hover:bg-brand-light hover:text-brand-darkest sm:px-4 sm:text-sm"
+            className="inline-flex min-h-[44px] touch-manipulation items-center justify-center rounded-full border-2 border-brand-light/80 px-4 text-[10px] font-bold uppercase tracking-wider text-brand-light transition-colors hover:bg-brand-light hover:text-brand-darkest active:scale-[0.98] sm:min-h-0 sm:px-4 sm:text-xs md:text-sm"
           >
             Logout
           </button>

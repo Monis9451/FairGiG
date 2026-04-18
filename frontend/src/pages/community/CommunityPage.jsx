@@ -31,26 +31,32 @@ export default function CommunityPage() {
   const showTabBar = tabs.length > 1
 
   return (
-    <div className="min-h-screen bg-brand-light">
+    <div className="min-h-screen bg-gradient-to-b from-brand-light via-brand-light to-white pb-[max(1rem,env(safe-area-inset-bottom))]">
       <DashboardHeader
         title="Community"
         subtitle="Anonymous bulletin among peers"
         backHref={backHref}
         backLabel="Dashboard"
       />
-      <main className="mx-auto max-w-3xl px-4 py-6 sm:px-6">
+      <main className="mx-auto w-full max-w-3xl px-3 py-4 sm:px-5 sm:py-6 md:px-6">
         {showTabBar ? (
-          <div className="mb-6 flex gap-1 rounded-full border border-brand-muted bg-white p-1 shadow-sm">
+          <div
+            className="mb-4 flex gap-1 rounded-2xl border border-brand-muted/80 bg-white/90 p-1 shadow-sm shadow-brand-darkest/5 backdrop-blur-sm sm:mb-6 sm:rounded-full sm:p-1"
+            role="tablist"
+            aria-label="Community sections"
+          >
             {tabs.map((t) => (
               <button
                 key={t.id}
                 type="button"
+                role="tab"
+                aria-selected={tab === t.id}
                 onClick={() => setTab(t.id)}
                 className={cn(
-                  'flex-1 rounded-full py-2.5 text-center text-sm font-bold transition-colors',
+                  'min-h-[48px] flex-1 touch-manipulation rounded-xl px-2 text-center text-sm font-bold transition-all active:scale-[0.98] sm:min-h-[44px] sm:rounded-full sm:px-3 sm:text-[0.9375rem]',
                   tab === t.id
-                    ? 'bg-brand-primary text-brand-light shadow-md'
-                    : 'text-brand-muted hover:text-brand-darkest'
+                    ? 'bg-brand-primary text-brand-light shadow-md shadow-brand-primary/25'
+                    : 'text-brand-muted hover:bg-brand-light/60 hover:text-brand-darkest'
                 )}
               >
                 {t.label}
