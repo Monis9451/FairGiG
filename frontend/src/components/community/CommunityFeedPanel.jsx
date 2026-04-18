@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { fieldContainerVariant, fieldVariant } from '@/components/auth/AuthSplitCard'
+import { fieldContainerVariant, fieldVariant } from '@/components/auth/motionVariants'
 
 export function CommunityFeedPanel({ role }) {
   const [searchInput, setSearchInput] = useState('')

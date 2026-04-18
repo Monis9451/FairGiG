@@ -85,6 +85,14 @@ const WorkerShiftsPage = () => {
   })
 
   const shiftItems = useMemo(() => shiftLogsQuery.data?.items ?? [], [shiftLogsQuery.data?.items])
+  const pendingCount = useMemo(
+    () => shiftItems.filter((item) => item.status === 'pending').length,
+    [shiftItems]
+  )
+  const verifiedCount = useMemo(
+    () => shiftItems.filter((item) => item.status === 'verified').length,
+    [shiftItems]
+  )
 
   const analyzeMutation = useMutation({
     mutationFn: (payload) => analyzeWorkerShift(payload),
@@ -249,16 +257,17 @@ const WorkerShiftsPage = () => {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <WorkerPageHeader
         badge="Shift Operations"
         title="Log, Upload, Analyze"
-        description="Keep shift evidence complete with mandatory screenshot uploads and run anomaly checks before escalation."
+        description="Capture complete evidence, save faster, and run anomaly checks without leaving the workflow."
+        summary={`${shiftItems.length} logs tracked · ${pendingCount} pending · ${verifiedCount} verified`}
       />
 
       <WorkerNoticeBanner notice={notice} />
 
-      <section className="grid gap-5 xl:grid-cols-2">
+      <section className="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
         <ShiftFormCard
           register={register}
           errors={errors}

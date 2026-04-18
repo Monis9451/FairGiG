@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 
 import useAuthStore from '@/store/authStore'
@@ -32,6 +32,14 @@ const WorkerCertificatePage = () => {
   })
 
   const certificate = certificateQuery.data || null
+
+  const filterSummary = useMemo(() => {
+    if (!certificateFilters.from && !certificateFilters.to) {
+      return 'Full range'
+    }
+
+    return `${certificateFilters.from || 'Start'} to ${certificateFilters.to || 'Now'}`
+  }, [certificateFilters.from, certificateFilters.to])
 
   const onDownloadCertificateJson = () => {
     if (!certificate) {
@@ -121,11 +129,12 @@ const WorkerCertificatePage = () => {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <WorkerPageHeader
         badge="Certificate"
         title="Verified Earnings Certificate"
         description="Generate machine-readable exports and print-ready statements scoped to your selected date range."
+        summary={`Active range: ${filterSummary}`}
       />
 
       <WorkerNoticeBanner notice={notice} />

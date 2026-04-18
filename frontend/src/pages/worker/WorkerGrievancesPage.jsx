@@ -50,6 +50,19 @@ const WorkerGrievancesPage = () => {
     [grievancesQuery.data?.items]
   )
 
+  const openCount = useMemo(
+    () => grievanceItems.filter((item) => item.status === 'open').length,
+    [grievanceItems]
+  )
+  const escalatedCount = useMemo(
+    () => grievanceItems.filter((item) => item.status === 'escalated').length,
+    [grievanceItems]
+  )
+  const resolvedCount = useMemo(
+    () => grievanceItems.filter((item) => item.status === 'resolved').length,
+    [grievanceItems]
+  )
+
   const createGrievanceMutation = useMutation({
     mutationFn: (payload) => createWorkerGrievance(payload),
     onSuccess: () => {
@@ -78,16 +91,17 @@ const WorkerGrievancesPage = () => {
   })
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <WorkerPageHeader
         badge="Grievances"
         title="Issue Tracking and Follow-up"
-        description="Submit disputes with clean metadata and track status progression without clutter from unrelated widgets."
+        description="Submit disputes with cleaner forms and monitor progression through open, escalated, and resolved stages."
+        summary={`${openCount} open · ${escalatedCount} escalated · ${resolvedCount} resolved`}
       />
 
       <WorkerNoticeBanner notice={notice} />
 
-      <section className="grid gap-5 xl:grid-cols-2">
+      <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <GrievanceFormCard
           registerGrievance={register}
           grievanceErrors={errors}

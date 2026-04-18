@@ -44,13 +44,22 @@ const WorkerBenchmarkPage = () => {
     [shiftItems, selectedPlatform, benchmarkMedian]
   )
 
+  const combinedError = benchmarkQuery.error || shiftLogsQuery.error
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <WorkerPageHeader
         badge="Benchmark"
         title="Platform and City Trend"
-        description="Compare your hourly outcomes against city medians with cleaner trend visuals and focused context."
+        description="Compare your hourly outcomes against city medians with clearer trend visuals and stronger context."
+        summary={`Platform: ${selectedPlatform}${cityZone ? ` · City: ${cityZone}` : ''}`}
       />
+
+      {(benchmarkQuery.isError || shiftLogsQuery.isError) && combinedError ? (
+        <p className="rounded-xl border border-brand-muted/35 bg-brand-light/80 px-4 py-3 text-sm text-brand-muted">
+          {parseApiError(combinedError)}
+        </p>
+      ) : null}
 
       <WorkerBenchmarkCard
         selectedPlatform={selectedPlatform}

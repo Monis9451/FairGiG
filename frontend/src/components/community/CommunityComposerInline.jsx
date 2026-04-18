@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { ChevronDown, ChevronUp } from 'lucide-react'
@@ -41,9 +41,9 @@ export function CommunityComposerInline({ className }) {
   const createPost = useCreateCommunityPost()
   const {
     register,
+    control,
     handleSubmit,
     reset,
-    watch,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(schema),
@@ -56,7 +56,7 @@ export function CommunityComposerInline({ className }) {
     },
   })
 
-  const bodyVal = watch('body')
+  const bodyVal = useWatch({ control, name: 'body' })
   const hasDraft = Boolean(String(bodyVal || '').trim())
 
   const onSubmit = (data) => {

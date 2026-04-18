@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { fieldVariant, fieldContainerVariant } from './AuthSplitCard';
+import { fieldVariant, fieldContainerVariant } from './motionVariants';
 import { useSignUp } from '@/hooks/useAuth';
 
 const registerSchema = z.object({

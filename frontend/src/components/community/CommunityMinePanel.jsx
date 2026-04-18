@@ -3,7 +3,7 @@ import { useCommunityMine } from '@/hooks/useCommunity'
 import { CommunityPostCard } from '@/components/community/CommunityPostCard'
 import { CommunityComposerInline } from '@/components/community/CommunityComposerInline'
 import { PostStatusBadge } from '@/components/community/PostStatusBadge'
-import { fieldContainerVariant, fieldVariant } from '@/components/auth/AuthSplitCard'
+import { fieldContainerVariant, fieldVariant } from '@/components/auth/motionVariants'
 
 export function CommunityMinePanel() {
   const mine = useCommunityMine()

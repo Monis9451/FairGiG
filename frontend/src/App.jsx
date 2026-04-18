@@ -1,11 +1,11 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
-import AdvocateDashboard from './pages/advocate/AdvocateDashboard'
 import CommunityPage from './pages/community/CommunityPage'
 import ProtectedRoute from './components/ProtectedRoute'
 import { AppShellLayout } from './components/layout/AppShellLayout'
 import useAuthStore from './store/authStore'
+import { renderAdvocateRoutes } from './routes/advocateRoutes'
 import { renderVerifierRoutes } from './routes/verifierRoutes'
 import { renderWorkerRoutes } from './routes/workerRoutes'
 
@@ -45,21 +45,16 @@ const App = () => {
         </Route>
       </Route>
 
-      <Route element={<ProtectedRoute allowedRoles={['advocate']} />}>
-        <Route element={<AppShellLayout />}>
-          <Route path="/advocate" element={<AdvocateDashboard />} />
-        </Route>
-      </Route>
-
       <Route element={<ProtectedRoute allowedRoles={['worker', 'verifier', 'advocate', 'analyst']} />}>
         <Route element={<AppShellLayout />}>
           <Route path="/community" element={<CommunityPage />} />
         </Route>
       </Route>
 
-      <Route element={<ProtectedRoute allowedRoles={['analyst']} />}>
+      <Route element={<ProtectedRoute allowedRoles={['advocate', 'analyst']} />}>
         <Route element={<AppShellLayout />}>
-          <Route path="/analyst" element={<AdvocateDashboard />} />
+          {renderAdvocateRoutes('/advocate')}
+          {renderAdvocateRoutes('/analyst')}
         </Route>
       </Route>
 

@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { useCommunityModeration, usePatchCommunityPost } from '@/hooks/useCommunity'
 import { CommunityPostCard } from '@/components/community/CommunityPostCard'
 import { PostStatusBadge } from '@/components/community/PostStatusBadge'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { fieldContainerVariant, fieldVariant } from '@/components/auth/AuthSplitCard'
+import { fieldContainerVariant, fieldVariant } from '@/components/auth/motionVariants'
 
 const MODERATION_STATUSES = [
   { value: '', label: 'All statuses' },
@@ -37,12 +37,6 @@ function ModerationRow({ post }) {
   const [status, setStatus] = useState(() => initialModerationSelectStatus(post))
   const [note, setNote] = useState(post.moderator_note ?? '')
   const [tags, setTags] = useState(Array.isArray(post.tags) ? post.tags.join(', ') : '')
-
-  useEffect(() => {
-    setStatus(initialModerationSelectStatus(post))
-    setNote(post.moderator_note ?? '')
-    setTags(Array.isArray(post.tags) ? post.tags.join(', ') : '')
-  }, [post.id, post.status, post.moderator_note, post.tags])
 
   const handleSave = () => {
     patch.mutate({
@@ -174,7 +168,12 @@ export function CommunityModerationPanel() {
       ) : (
         <motion.ul variants={fieldContainerVariant} initial="hidden" animate="visible" className="space-y-4">
           {items.map((post) => (
-            <motion.li key={post.id} variants={fieldVariant}>
+            <motion.li
+              key={`${post.id}-${post.status}-${post.moderator_note ?? ''}-${
+                Array.isArray(post.tags) ? post.tags.join(',') : ''
+              }`}
+              variants={fieldVariant}
+            >
               <ModerationRow post={post} />
             </motion.li>
           ))}

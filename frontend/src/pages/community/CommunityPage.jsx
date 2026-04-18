@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import useAuthStore from '@/store/authStore'
 import { CommunityFeedPanel } from '@/components/community/CommunityFeedPanel'
 import { CommunityMinePanel } from '@/components/community/CommunityMinePanel'
@@ -7,7 +8,7 @@ import { cn } from '@/lib/utils'
 
 export default function CommunityPage() {
   const role = useAuthStore((s) => s.profile?.role)
-  const [tab, setTab] = useState('feed')
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const tabs = useMemo(() => {
     if (role === 'worker') {
@@ -24,6 +25,22 @@ export default function CommunityPage() {
     }
     return [{ id: 'feed', label: 'Feed' }]
   }, [role])
+
+  const tabParam = searchParams.get('tab') || ''
+  const activeTab = tabs.some((tabOption) => tabOption.id === tabParam)
+    ? tabParam
+    : tabs[0]?.id || 'feed'
+
+  const setActiveTab = (nextTab) => {
+    const nextParams = new URLSearchParams(searchParams)
+    if (nextTab === 'feed') {
+      nextParams.delete('tab')
+    } else {
+      nextParams.set('tab', nextTab)
+    }
+
+    setSearchParams(nextParams, { replace: true })
+  }
 
   const showTabBar = tabs.length > 1
 
@@ -45,11 +62,11 @@ export default function CommunityPage() {
                 key={t.id}
                 type="button"
                 role="tab"
-                aria-selected={tab === t.id}
-                onClick={() => setTab(t.id)}
+                aria-selected={activeTab === t.id}
+                onClick={() => setActiveTab(t.id)}
                 className={cn(
                   'min-h-[48px] flex-1 touch-manipulation rounded-xl px-2 text-center text-sm font-bold transition-all active:scale-[0.98] sm:min-h-[44px] sm:rounded-full sm:px-3 sm:text-[0.9375rem]',
-                  tab === t.id
+                  activeTab === t.id
                     ? 'bg-brand-primary text-brand-light shadow-md shadow-brand-primary/25'
                     : 'text-brand-muted hover:bg-brand-light/60 hover:text-brand-darkest'
                 )}
@@ -60,9 +77,9 @@ export default function CommunityPage() {
           </div>
         ) : null}
 
-        {tab === 'feed' ? <CommunityFeedPanel role={role} /> : null}
-        {tab === 'mine' && role === 'worker' ? <CommunityMinePanel /> : null}
-        {tab === 'moderate' && (role === 'advocate' || role === 'analyst') ? (
+        {activeTab === 'feed' ? <CommunityFeedPanel role={role} /> : null}
+        {activeTab === 'mine' && role === 'worker' ? <CommunityMinePanel /> : null}
+        {activeTab === 'moderate' && (role === 'advocate' || role === 'analyst') ? (
           <CommunityModerationPanel />
         ) : null}
       </main>
