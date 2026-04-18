@@ -4,6 +4,7 @@ import Register from './pages/auth/Register'
 import WorkerDashboard from './pages/worker/WorkerDashboard'
 import VerifierDashboard from './pages/verifier/VerifierDashboard'
 import AdvocateDashboard from './pages/advocate/AdvocateDashboard'
+import CommunityPage from './pages/community/CommunityPage'
 import ProtectedRoute from './components/ProtectedRoute'
 import useAuthStore from './store/authStore'
 
@@ -41,6 +42,10 @@ const App = () => {
 
       <Route element={<ProtectedRoute allowedRoles={['advocate']} />}>
         <Route path="/advocate" element={<AdvocateDashboard />} />
+      </Route>
+
+      <Route element={<ProtectedRoute allowedRoles={['worker', 'verifier', 'advocate']} />}>
+        <Route path="/community" element={<CommunityPage />} />
       </Route>
 
       <Route element={<ProtectedRoute allowedRoles={['analyst']} />}>

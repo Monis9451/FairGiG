@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import useAuthStore from '@/store/authStore'
 
 const AdvocateDashboard = () => {
@@ -11,15 +11,23 @@ const AdvocateDashboard = () => {
   }
 
   return (
-    <div className="p-6">
-      <h1 className="mb-4 text-2xl font-bold">Advocate Dashboard</h1>
-      <button
-        type="button"
-        onClick={handleLogout}
-        className="rounded-md border border-brand-primary bg-brand-primary px-4 py-2 text-sm font-semibold text-brand-light transition-opacity hover:opacity-90"
-      >
-        Logout
-      </button>
+    <div className="min-h-screen bg-brand-light p-6">
+      <h1 className="mb-4 text-2xl font-bold text-brand-darkest">Advocate Dashboard</h1>
+      <div className="flex flex-wrap gap-3">
+        <Link
+          to="/community"
+          className="rounded-full border-2 border-brand-primary bg-brand-primary px-5 py-2 text-sm font-bold uppercase tracking-wider text-brand-light transition-opacity hover:opacity-90"
+        >
+          Community
+        </Link>
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="rounded-full border-2 border-brand-muted bg-white px-5 py-2 text-sm font-semibold text-brand-darkest transition-colors hover:bg-brand-light"
+        >
+          Logout
+        </button>
+      </div>
     </div>
   )
 }
