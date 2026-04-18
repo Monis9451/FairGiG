@@ -27,3 +27,4 @@ Thumbs.db
 # Build
 dist/
 build/
+worker_shift_logs_20_rows.csv
