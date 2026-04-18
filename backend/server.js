@@ -1,10 +1,10 @@
-const express = require("express");
-const cors = require("cors");
-const helmet = require("helmet");
-const rateLimit = require("express-rate-limit");
-const hpp = require("hpp");
-const axios = require("axios");
-const dotenv = require("dotenv");
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import hpp from "hpp";
+import axios from "axios";
+import dotenv from "dotenv";
 
 dotenv.config({ quiet: true });
 
