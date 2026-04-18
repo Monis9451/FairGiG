@@ -2,10 +2,7 @@ openapi: 3.0.3
 info:
   title: FairGiG Node API
   description: |
-    Grievance / analytics / certificate service (Express). **Edit this file** as you add routes so the team stays in sync via GitHub.
-
-    - Interactive docs: `/api-docs`
-    - Raw spec: `/openapi.yaml` or `/openapi.json`
+    Grievance / analytics / certificate service (Express). **Edit this file** in the repo; Swagger UI at `/api-docs` loads it on server start.
   version: 0.1.0
 
 servers:
@@ -17,8 +14,8 @@ servers:
 tags:
   - name: System
     description: Health and gateway checks
-  - name: Documentation
-    description: OpenAPI delivery
+  - name: Auth
+    description: JWT (Supabase access token) + profiles
 
 paths:
   /:
@@ -62,33 +59,50 @@ paths:
               schema:
                 $ref: "#/components/schemas/EnvelopeServicesHealth"
 
-  /openapi.yaml:
+  /api/v1/me:
     get:
-      tags: [Documentation]
-      summary: OpenAPI document (YAML)
-      operationId: getOpenApiYaml
+      tags: [Auth]
+      summary: Current user + profile
+      description: |
+        Send `Authorization: Bearer <access_token>` from Supabase Auth (same token the frontend gets after sign-in).
+      operationId: getMe
+      security:
+        - bearerAuth: []
       responses:
         "200":
-          description: YAML spec
-          content:
-            application/yaml:
-              schema:
-                type: string
-
-  /openapi.json:
-    get:
-      tags: [Documentation]
-      summary: OpenAPI document (JSON)
-      operationId: getOpenApiJson
-      responses:
-        "200":
-          description: JSON spec
+          description: User and optional profile row
           content:
             application/json:
               schema:
-                type: object
+                $ref: "#/components/schemas/EnvelopeMe"
+        "401":
+          description: Missing or invalid token
+        "503":
+          description: Server missing Supabase env
+
+  /api/v1/verifier/ping:
+    get:
+      tags: [Auth]
+      summary: Verifier-only probe (role template)
+      operationId: getVerifierPing
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Caller has verifier role
+        "401":
+          description: Invalid token
+        "403":
+          description: Wrong role or no profile
 
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Supabase user access_token (not service_role)
+
   schemas:
     EnvelopeMessage:
       type: object
@@ -146,5 +160,48 @@ components:
             message:
               type: string
               description: Present when no downstream URLs are configured
+        error:
+          nullable: true
+
+    EnvelopeMe:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            user:
+              type: object
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                email:
+                  type: string
+                  nullable: true
+                phone:
+                  type: string
+                  nullable: true
+            profile:
+              nullable: true
+              type: object
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                full_name:
+                  type: string
+                  nullable: true
+                role:
+                  type: string
+                  enum: [worker, verifier, advocate]
+                city_zone:
+                  type: string
+                  nullable: true
+                created_at:
+                  type: string
+                  format: date-time
         error:
           nullable: true

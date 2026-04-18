@@ -11,6 +11,8 @@ import { fileURLToPath } from "url";
 import { createRequire } from "module";
 import YAML from "yaml";
 
+import { attachProfile, requireAuth, requireRole } from "./src/middleware/auth.js";
+
 const require = createRequire(import.meta.url);
 const swaggerUi = require("swagger-ui-express");
 
@@ -197,14 +199,6 @@ app.get("/services/health", async (_req, res, next) => {
   }
 });
 
-app.get("/openapi.yaml", (_req, res) => {
-  res.type("application/yaml").send(fs.readFileSync(openApiPath, "utf8"));
-});
-
-app.get("/openapi.json", (_req, res) => {
-  res.json(openApiDocument);
-});
-
 app.use(
   "/api-docs",
   swaggerUi.serve,
@@ -215,6 +209,37 @@ app.use(
       tryItOutEnabled: true,
     },
   })
+);
+
+/** Who am I — use Supabase access token from sign-in (Bearer). */
+app.get("/api/v1/me", requireAuth, attachProfile, (req, res) => {
+  res.status(200).json({
+    success: true,
+    data: {
+      user: {
+        id: req.authUser.id,
+        email: req.authUser.email,
+        phone: req.authUser.phone,
+      },
+      profile: req.profile,
+    },
+    error: null,
+  });
+});
+
+
+app.get(
+  "/api/v1/verifier/ping",
+  requireAuth,
+  attachProfile,
+  requireRole("verifier"),
+  (_req, res) => {
+    res.status(200).json({
+      success: true,
+      data: { message: "verifier OK" },
+      error: null,
+    });
+  }
 );
 
 app.use((req, res) => {

@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 8000
     supabase_url: str | None = None
+    supabase_anon_key: str | None = None
     supabase_service_role_key: str | None = None
     database_url: str | None = None
 
