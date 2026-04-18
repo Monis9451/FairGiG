@@ -1,33 +1,11 @@
-import { Link, useNavigate } from 'react-router-dom'
-import useAuthStore from '@/store/authStore'
-
 const WorkerDashboard = () => {
-  const navigate = useNavigate()
-  const clearAuth = useAuthStore((state) => state.clearAuth)
-
-  const handleLogout = () => {
-    clearAuth()
-    navigate('/login', { replace: true })
-  }
-
   return (
-    <div className="min-h-screen bg-brand-light p-6">
-      <h1 className="mb-4 text-2xl font-bold text-brand-darkest">Worker Dashboard</h1>
-      <div className="flex flex-wrap gap-3">
-        <Link
-          to="/community"
-          className="rounded-full border-2 border-brand-primary bg-brand-primary px-5 py-2 text-sm font-bold uppercase tracking-wider text-brand-light transition-opacity hover:opacity-90"
-        >
-          Community
-        </Link>
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="rounded-full border-2 border-brand-muted bg-white px-5 py-2 text-sm font-semibold text-brand-darkest transition-colors hover:bg-brand-light"
-        >
-          Logout
-        </button>
-      </div>
+    <div className="min-h-full bg-brand-light p-4 sm:p-6 md:p-8">
+      <h1 className="text-2xl font-extrabold text-brand-darkest sm:text-3xl">Worker dashboard</h1>
+      <p className="mt-2 max-w-xl text-sm leading-relaxed text-brand-muted sm:text-base">
+        Use the sidebar to open <strong className="text-brand-dark">Community</strong> or your home here. More worker
+        tools will show up here as we build them.
+      </p>
     </div>
   )
 }
