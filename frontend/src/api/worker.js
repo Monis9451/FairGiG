@@ -28,6 +28,19 @@ export const createWorkerShiftLog = async (payload) => {
   return unwrapResponseData(response)
 }
 
+export const uploadWorkerShiftScreenshot = async (file) => {
+  const formData = new FormData()
+  formData.append('screenshot', file)
+
+  const response = await apiClient.post('/api/uploads/shift-screenshot', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  })
+
+  return unwrapResponseData(response)
+}
+
 export const importWorkerShiftLogsCsv = async (file) => {
   const formData = new FormData()
   formData.append('file', file)

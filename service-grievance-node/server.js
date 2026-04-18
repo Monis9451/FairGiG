@@ -18,6 +18,7 @@ import analyticsRoutes from "./src/routes/analytics.js";
 import certificateRoutes from "./src/routes/certificates.js";
 import authRoutes from "./src/routes/auth.js";
 import communityRoutes from "./src/routes/community.js";
+import uploadRoutes from "./src/routes/uploads.js";
 import { downstreamBff } from "./src/middleware/downstreamBff.js";
 
 const require = createRequire(import.meta.url);
@@ -281,6 +282,7 @@ app.use("/api/grievances", ...dataRoutesAuth, grievanceRoutes);
 app.use("/api/analytics", ...dataRoutesAuth, analyticsRoutes);
 app.use("/api/certificates", ...dataRoutesAuth, certificateRoutes);
 app.use("/api/community", ...dataRoutesAuth, communityRoutes);
+app.use("/api/uploads", ...dataRoutesAuth, uploadRoutes);
 
 app.use((req, res) => {
   res.status(404).json({

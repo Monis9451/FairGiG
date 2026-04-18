@@ -2,12 +2,12 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
 import WorkerDashboard from './pages/worker/WorkerDashboard'
-import VerifierDashboard from './pages/verifier/VerifierDashboard'
 import AdvocateDashboard from './pages/advocate/AdvocateDashboard'
 import CommunityPage from './pages/community/CommunityPage'
 import ProtectedRoute from './components/ProtectedRoute'
 import { AppShellLayout } from './components/layout/AppShellLayout'
 import useAuthStore from './store/authStore'
+import { renderVerifierRoutes } from './routes/verifierRoutes'
 
 const App = () => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated)
@@ -41,7 +41,7 @@ const App = () => {
 
       <Route element={<ProtectedRoute allowedRoles={['verifier']} />}>
         <Route element={<AppShellLayout />}>
-          <Route path="/verifier" element={<VerifierDashboard />} />
+          {renderVerifierRoutes()}
         </Route>
       </Route>
 

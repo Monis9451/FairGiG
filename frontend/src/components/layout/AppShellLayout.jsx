@@ -1,6 +1,15 @@
 import { useEffect, useState } from 'react'
-import { Home, Menu, MessageCircle, X } from 'lucide-react'
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import {
+  AlertTriangle,
+  ClipboardCheck,
+  Home,
+  LayoutDashboard,
+  Menu,
+  MessageCircle,
+  ShieldAlert,
+  X,
+} from 'lucide-react'
+import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import useAuthStore from '@/store/authStore'
 import { cn } from '@/lib/utils'
 
@@ -33,25 +42,82 @@ function LogoCompact() {
 /** Baseline nav for all roles; tighten per-role later. */
 function useNavItems() {
   const role = useAuthStore((s) => s.profile?.role)
-  const homePath = role === 'analyst' ? '/analyst' : `/${role}`
+
+  if (role === 'verifier') {
+    return [
+      { to: '/verifier', label: 'Dashboard', end: true, icon: LayoutDashboard },
+      { to: '/verifier/queue', label: 'Verification Queue', end: true, icon: ClipboardCheck },
+      {
+        to: '/verifier/vulnerability',
+        label: 'Vulnerability Flags',
+        end: true,
+        icon: ShieldAlert,
+      },
+      { to: '/verifier/grievances', label: 'Grievances', end: true, icon: AlertTriangle },
+      { to: '/community', label: 'Community', end: false, icon: MessageCircle },
+    ]
+  }
+
+  const homePath = role === 'analyst' ? '/analyst' : role ? `/${role}` : '/'
+
   return [
     { to: homePath, label: 'Home', end: true, icon: Home },
     { to: '/community', label: 'Community', end: false, icon: MessageCircle },
   ]
 }
 
+const navLinkClass = ({ isActive }) =>
+  cn(
+    'flex min-h-[48px] items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors touch-manipulation md:min-h-0 md:py-3',
+    isActive
+      ? 'bg-brand-primary text-brand-light shadow-md shadow-brand-primary/25'
+      : 'text-brand-light/80 hover:bg-white/10 hover:text-white'
+  )
+
+function SidebarFooter({ profileName, role, onLogout }) {
+  return (
+    <div className="mt-auto border-t border-white/10 p-4">
+      <p className="truncate text-xs font-medium text-brand-light/80">{profileName || 'Signed in'}</p>
+      <p className="mb-3 truncate text-[10px] font-bold uppercase tracking-wider text-brand-light/45">
+        {role || '—'}
+      </p>
+      <button
+        type="button"
+        onClick={onLogout}
+        className="w-full min-h-[44px] rounded-xl border border-white/25 py-2.5 text-xs font-bold uppercase tracking-wider text-brand-light transition-colors hover:bg-white/10 touch-manipulation"
+      >
+        Log out
+      </button>
+    </div>
+  )
+}
+
+function SidebarNav({ navItems, onNavigate }) {
+  return (
+    <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3" aria-label="Main navigation">
+      {navItems.map((item) => (
+        <NavLink
+          key={`${item.to}-${item.label}`}
+          to={item.to}
+          end={item.end}
+          className={navLinkClass}
+          onClick={() => onNavigate?.()}
+        >
+          <item.icon className="h-5 w-5 shrink-0 opacity-95" strokeWidth={2} aria-hidden />
+          {item.label}
+        </NavLink>
+      ))}
+    </nav>
+  )
+}
+
 export function AppShellLayout() {
   const [mobileOpen, setMobileOpen] = useState(false)
-  const location = useLocation()
   const navigate = useNavigate()
   const profile = useAuthStore((s) => s.profile)
   const role = useAuthStore((s) => s.profile?.role)
   const clearAuth = useAuthStore((s) => s.clearAuth)
   const navItems = useNavItems()
-
-  useEffect(() => {
-    setMobileOpen(false)
-  }, [location.pathname])
 
   useEffect(() => {
     const onKey = (e) => {
@@ -65,47 +131,6 @@ export function AppShellLayout() {
     clearAuth()
     navigate('/login', { replace: true })
   }
-
-  const linkClass = ({ isActive }) =>
-    cn(
-      'flex min-h-[48px] items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors touch-manipulation md:min-h-0 md:py-3',
-      isActive
-        ? 'bg-brand-primary text-brand-light shadow-md shadow-brand-primary/25'
-        : 'text-brand-light/80 hover:bg-white/10 hover:text-white'
-    )
-
-  const SidebarFooter = () => (
-    <div className="mt-auto border-t border-white/10 p-4">
-      <p className="truncate text-xs font-medium text-brand-light/80">{profile?.full_name || 'Signed in'}</p>
-      <p className="mb-3 truncate text-[10px] font-bold uppercase tracking-wider text-brand-light/45">
-        {role || '—'}
-      </p>
-      <button
-        type="button"
-        onClick={logout}
-        className="w-full min-h-[44px] rounded-xl border border-white/25 py-2.5 text-xs font-bold uppercase tracking-wider text-brand-light transition-colors hover:bg-white/10 touch-manipulation"
-      >
-        Log out
-      </button>
-    </div>
-  )
-
-  const SidebarNav = ({ onNavigate } = {}) => (
-    <nav className="flex flex-1 flex-col gap-1 overflow-y-auto p-3" aria-label="Main navigation">
-      {navItems.map(({ to, label, end, icon: Icon }) => (
-        <NavLink
-          key={`${to}-${label}`}
-          to={to}
-          end={end}
-          className={linkClass}
-          onClick={() => onNavigate?.()}
-        >
-          <Icon className="h-5 w-5 shrink-0 opacity-95" strokeWidth={2} aria-hidden />
-          {label}
-        </NavLink>
-      ))}
-    </nav>
-  )
 
   return (
     <div className="min-h-screen bg-brand-light">
@@ -151,16 +176,16 @@ export function AppShellLayout() {
             <span className="sr-only">Close menu</span>
           </button>
         </div>
-        <SidebarNav onNavigate={() => setMobileOpen(false)} />
-        <SidebarFooter />
+        <SidebarNav navItems={navItems} onNavigate={() => setMobileOpen(false)} />
+        <SidebarFooter profileName={profile?.full_name} role={role} onLogout={logout} />
       </aside>
 
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-white/10 bg-brand-darkest md:flex">
         <div className="border-b border-white/10 p-4">
           <LogoCompact />
         </div>
-        <SidebarNav />
-        <SidebarFooter />
+        <SidebarNav navItems={navItems} />
+        <SidebarFooter profileName={profile?.full_name} role={role} onLogout={logout} />
       </aside>
 
       <div className="min-h-screen md:ml-64">

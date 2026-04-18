@@ -189,6 +189,15 @@ def create_shift_log(
             detail="worker_id in payload must match authenticated user",
         )
 
+    screenshot_url = str(payload.screenshot_url or "").strip()
+    if not screenshot_url:
+        raise HTTPException(
+            status_code=422,
+            detail="screenshot_url is required when logging a shift",
+        )
+
+    payload.screenshot_url = screenshot_url
+
     supabase = get_supabase_client()
 
     insert_response = (
