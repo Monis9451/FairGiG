@@ -4,7 +4,7 @@ info:
   description: |
     Express service for grievances, analytics, and certificate endpoints.
     Interactive docs are available at /api-docs.
-    Grievances, analytics, and certificates require `Authorization: Bearer` (Supabase access token).
+    Grievances, analytics, certificates, and worker community require `Authorization: Bearer` (Supabase access token).
   version: 0.2.0
 
 servers:
@@ -32,6 +32,9 @@ tags:
   - name: BFF Python
     description: |
       Proxied to FastAPI (earnings / anomaly). Same Bearer token as other APIs. Full schemas in Python Swagger (e.g. :8000/docs).
+  - name: Community
+    description: |
+      Worker bulletin (4th persona): anonymous to peers on the public feed; advocates moderate (pending → visible/hidden/removed).
 
 paths:
   /:
@@ -666,6 +669,162 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/EnvelopeCertificate"
+
+  /api/community/feed:
+    get:
+      tags: [Community]
+      summary: Community feed (no author)
+      description: Only visible posts; peers never see who wrote them.
+      operationId: getCommunityFeed
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: category
+          schema:
+            type: string
+        - in: query
+          name: platform
+          schema:
+            type: string
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Feed
+        "401":
+          description: Missing or invalid token
+
+  /api/community/mine:
+    get:
+      tags: [Community]
+      summary: My community posts
+      description: Worker role only.
+      operationId: getCommunityMine
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Own posts with moderation fields
+        "403":
+          description: Not a worker
+
+  /api/community:
+    post:
+      tags: [Community]
+      summary: Create community post
+      description: Worker only; status starts pending until advocate approves.
+      operationId: createCommunityPost
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                title:
+                  type: string
+                body:
+                  type: string
+                platform:
+                  type: string
+                category:
+                  type: string
+                tags:
+                  oneOf:
+                    - type: string
+                    - type: array
+                      items:
+                        type: string
+      responses:
+        "201":
+          description: Created
+        "403":
+          description: Not a worker
+
+  /api/community/moderation:
+    get:
+      tags: [Community]
+      summary: Moderation queue
+      description: Advocate only; responses include author_id.
+      operationId: getCommunityModeration
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [pending, visible, hidden, removed]
+      responses:
+        "200":
+          description: Posts for moderation
+        "403":
+          description: Not an advocate
+
+  /api/community/{id}:
+    patch:
+      tags: [Community]
+      summary: Moderate or edit pending post
+      description: Advocate may set status/tags/note; worker may edit own pending content.
+      operationId: patchCommunityPost
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [pending, visible, hidden, removed]
+                moderator_note:
+                  type: string
+                  nullable: true
+                tags:
+                  oneOf:
+                    - type: string
+                    - type: array
+                      items:
+                        type: string
+                title:
+                  type: string
+                body:
+                  type: string
+                platform:
+                  type: string
+                category:
+                  type: string
+      responses:
+        "200":
+          description: Updated
+        "403":
+          description: Not allowed
+        "404":
+          description: Not found
 
 components:
   securitySchemes:

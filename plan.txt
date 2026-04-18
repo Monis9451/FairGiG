@@ -106,9 +106,10 @@ What each role should SEE and DO in the UI (map to APIs):
     • Certificate — GET .../api/certificates/workers/<your-user-id>/verified-logs
       (workerId must be your auth user id)
     • Grievances — GET/POST .../api/grievances  (POST body worker_id ignored; server uses JWT)
+    • Community (anonymous among peers) — GET .../api/community/feed (visible only); POST .../api/community (body); GET .../api/community/mine
 
 --- VERIFIER ---
-  SEE: Pending shift logs (use earnings list with status=pending or filter in UI), grievances broadly.
+  SEE: Pending shift logs (use earnings list with status=pending or filter in UI), grievances broadly, community feed.
   DO:
     • List logs — GET .../api/v1/earnings/shift-logs?worker_id=...&status=pending  (optional filters)
     • Approve/flag — PATCH .../api/v1/earnings/shift-logs/{id}/verification
@@ -116,12 +117,13 @@ What each role should SEE and DO in the UI (map to APIs):
     • Optional sanity check — GET .../api/v1/verifier/ping
 
 --- ADVOCATE ---
-  SEE: Same wide analytics as verifier; grievances across workers.
+  SEE: Same wide analytics as verifier; grievances across workers; community moderation queue.
   DO:
     • GET .../api/analytics/vulnerability-flags
     • GET .../api/grievances  (optional query worker_id, filters)
     • Benchmarks for any city — GET .../api/analytics/benchmarks/platform-city?...  (no worker city lock)
     • Certificates for any worker — GET .../api/certificates/workers/{workerId}/verified-logs
+    • Community moderation — GET .../api/community/moderation; PATCH .../api/community/{id} (status visible|hidden|removed, moderator_note, tags)
 
 Mock data: Optional for layout-only screens. For demo with judges, prefer real API
 calls above once Node + Supabase are up.
