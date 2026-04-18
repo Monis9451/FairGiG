@@ -13,6 +13,35 @@ import { getSupabaseClient } from "../lib/supabase.js";
 const router = express.Router();
 
 const VALID_STATUS = new Set(["pending", "visible", "hidden", "removed"]);
+/** Advocate moderation may only move posts between peer-visible states (not back to pending). */
+const MODERATION_STATUS = new Set(["visible", "hidden", "removed"]);
+
+/** Strip / normalize search so PostgREST `or=(...)` is not broken by commas or ILIKE wildcards. */
+const sanitizeSearchInput = (raw) => {
+  const s = String(raw || "")
+    .trim()
+    .replace(/,/g, " ")
+    .replace(/%/g, "")
+    .replace(/_/g, "")
+    .slice(0, 200);
+  return s;
+};
+
+const applyFeedFilters = (query, { category, platform, search }) => {
+  let q = query;
+  if (category) {
+    q = q.eq("category", category);
+  }
+  if (platform) {
+    q = q.eq("platform", platform);
+  }
+  const term = sanitizeSearchInput(search);
+  if (term) {
+    const pat = `%${term}%`;
+    q = q.or(`title.ilike.${pat},body.ilike.${pat},category.ilike.${pat}`);
+  }
+  return q;
+};
 
 const ensureRequiredString = (value, fieldName) => {
   const parsed = String(value || "").trim();
@@ -41,12 +70,12 @@ const mapModerationPost = (row) => ({
   updated_at: row.updated_at,
 });
 
-const validateStatus = (raw) => {
+const validateModerationStatus = (raw) => {
   const s = String(raw || "").trim().toLowerCase();
-  if (!VALID_STATUS.has(s)) {
+  if (!MODERATION_STATUS.has(s)) {
     throw new HttpError(
       400,
-      `Invalid status. Allowed: ${[...VALID_STATUS].join(", ")}.`
+      `Invalid moderation status. Allowed: ${[...MODERATION_STATUS].join(", ")}.`
     );
   }
   return s;
@@ -63,40 +92,52 @@ router.get(
     const offset = Math.min(Math.max(Number(req.query.offset) || 0, 0), 5000);
     const category = String(req.query.category || "").trim();
     const platform = String(req.query.platform || "").trim();
-    const search = String(req.query.search || "").trim().toLowerCase();
+    const search = String(req.query.search || "").trim();
 
-    let query = supabase
-      .from("community_posts")
-      .select("id, title, body, platform, category, tags, status, created_at")
-      .eq("status", "visible")
-      .order("created_at", { ascending: false })
-      .range(offset, offset + limit - 1);
+    const filterArgs = { category, platform, search };
 
-    if (category) {
-      query = query.eq("category", category);
+    let countQuery = applyFeedFilters(
+      supabase
+        .from("community_posts")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "visible"),
+      filterArgs
+    );
+
+    let dataQuery = applyFeedFilters(
+      supabase
+        .from("community_posts")
+        .select("id, title, body, platform, category, tags, status, created_at")
+        .eq("status", "visible")
+        .order("created_at", { ascending: false })
+        .range(offset, offset + limit - 1),
+      filterArgs
+    );
+
+    const [{ count: total, error: countError }, { data, error }] = await Promise.all([
+      countQuery,
+      dataQuery,
+    ]);
+
+    if (countError) {
+      throw new HttpError(500, "Failed to count community feed.", countError.message);
     }
-    if (platform) {
-      query = query.eq("platform", platform);
-    }
-
-    const { data, error } = await query;
-
     if (error) {
       throw new HttpError(500, "Failed to load community feed.", error.message);
     }
 
-    let items = (data || []).map(mapFeedPost);
-    if (search) {
-      items = items.filter((p) => {
-        const t = `${p.title} ${p.body} ${p.category}`.toLowerCase();
-        return t.includes(search);
-      });
-    }
+    const items = (data || []).map(mapFeedPost);
+    const totalRows = typeof total === "number" ? total : items.length;
 
     return res.status(200).json(
       success({
         items,
-        pagination: { limit, offset, count: items.length },
+        pagination: {
+          limit,
+          offset,
+          total: totalRows,
+          returned: items.length,
+        },
       })
     );
   })
@@ -186,26 +227,48 @@ router.get(
   asyncHandler(async (req, res) => {
     const supabase = getSupabaseClient();
     const statusFilter = String(req.query.status || "").trim().toLowerCase();
+    const limit = Math.min(Math.max(Number(req.query.limit) || 50, 1), 200);
+    const offset = Math.min(Math.max(Number(req.query.offset) || 0, 0), 5000);
 
-    let query = supabase
+    let countQuery = supabase
+      .from("community_posts")
+      .select("*", { count: "exact", head: true });
+
+    let dataQuery = supabase
       .from("community_posts")
       .select("*")
       .order("created_at", { ascending: false })
-      .limit(200);
+      .range(offset, offset + limit - 1);
 
     if (statusFilter && VALID_STATUS.has(statusFilter)) {
-      query = query.eq("status", statusFilter);
+      countQuery = countQuery.eq("status", statusFilter);
+      dataQuery = dataQuery.eq("status", statusFilter);
     }
 
-    const { data, error } = await query;
+    const [{ count: total, error: countError }, { data, error }] = await Promise.all([
+      countQuery,
+      dataQuery,
+    ]);
 
+    if (countError) {
+      throw new HttpError(500, "Failed to count moderation queue.", countError.message);
+    }
     if (error) {
       throw new HttpError(500, "Failed to load moderation queue.", error.message);
     }
 
+    const items = (data || []).map(mapModerationPost);
+    const totalRows = typeof total === "number" ? total : items.length;
+
     return res.status(200).json(
       success({
-        items: (data || []).map(mapModerationPost),
+        items,
+        pagination: {
+          limit,
+          offset,
+          total: totalRows,
+          returned: items.length,
+        },
       })
     );
   })
@@ -234,7 +297,7 @@ router.patch(
     if (role === "advocate") {
       const updates = {};
       if (req.body.status !== undefined) {
-        updates.status = validateStatus(req.body.status);
+        updates.status = validateModerationStatus(req.body.status);
       }
       if (req.body.moderator_note !== undefined) {
         updates.moderator_note =

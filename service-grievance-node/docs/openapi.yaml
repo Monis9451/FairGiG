@@ -674,7 +674,10 @@ paths:
     get:
       tags: [Community]
       summary: Community feed (no author)
-      description: Only visible posts; peers never see who wrote them.
+      description: |
+        Only visible posts; peers never see who wrote them.
+        Search matches title, body, or category (case-insensitive, server-side).
+        Pagination: `total` is the full match count; `returned` is this page length.
       operationId: getCommunityFeed
       security:
         - bearerAuth: []
@@ -689,6 +692,7 @@ paths:
             type: string
         - in: query
           name: search
+          description: Substring match on title, body, or category (wildcards % and _ stripped).
           schema:
             type: string
         - in: query
@@ -703,7 +707,8 @@ paths:
             default: 0
       responses:
         "200":
-          description: Feed
+          description: |
+            Feed items and pagination with `total` (matching rows) and `returned` (items in this response).
         "401":
           description: Missing or invalid token
 
@@ -761,7 +766,9 @@ paths:
     get:
       tags: [Community]
       summary: Moderation queue
-      description: Advocate only; responses include author_id.
+      description: |
+        Advocate only; responses include author_id.
+        Pagination: `limit` (default 50, max 200), `offset` (max 5000); body includes `pagination.total` and `pagination.returned`.
       operationId: getCommunityModeration
       security:
         - bearerAuth: []
@@ -771,9 +778,19 @@ paths:
           schema:
             type: string
             enum: [pending, visible, hidden, removed]
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
       responses:
         "200":
-          description: Posts for moderation
+          description: Posts for moderation with pagination
         "403":
           description: Not an advocate
 
@@ -781,7 +798,9 @@ paths:
     patch:
       tags: [Community]
       summary: Moderate or edit pending post
-      description: Advocate may set status/tags/note; worker may edit own pending content.
+      description: |
+        Advocate may set `status` (visible, hidden, or removed only), `moderator_note`, and `tags`.
+        Worker may edit own post only while status is pending (`title`, `body`, `platform`, `category`, `tags`); workers must not send `status`.
       operationId: patchCommunityPost
       security:
         - bearerAuth: []
@@ -800,7 +819,8 @@ paths:
               properties:
                 status:
                   type: string
-                  enum: [pending, visible, hidden, removed]
+                  description: Advocate only. Cannot set back to pending.
+                  enum: [visible, hidden, removed]
                 moderator_note:
                   type: string
                   nullable: true
