@@ -1,0 +1,112 @@
+This is the "War Plan." To work in parallel without blocking each other, you must treat your roles like separate companies that trade data via APIs.
+
+The Setup (Do this in the first 30 mins)
+
+Repo Structure: One repo with 4 folders: /frontend, /service-earnings-python, /service-anomaly-python, /service-grievance-node (Node).
+
+The Shared DB: Decide on a single PostgreSQL or MySQL database. Person 1 sets it up, but Person 2 writes the script to fill it with fake data.
+
+Person 1: The Core Engine & AI (Python/FastAPI)
+
+Branch: backend-python-core
+User Personas: Gig Worker (Logging), Verifier (Approving)
+
+Core Functionalities Assigned:
+
+Auth Service: Create JWT login/signup. Assign roles: WORKER, VERIFIER, ADVOCATE.
+
+Earnings Service (FastAPI):
+
+Create the "Shift Log" API (Date, Platform, Gross, Deductions).
+
+CSV Import: Write a function that takes a CSV file and saves 10+ rows to the DB at once.
+
+Verification Status: Create an endpoint for the Verifier persona to change a log status from pending to verified or flagged.
+
+Anomaly Service (FastAPI):
+
+Build the /analyze endpoint using Isolation Forest (or Z-score logic).
+
+Input: Current shift data + History.
+
+Output: is_anomaly: true + explanation: "Your earnings are 30% lower than usual."
+
+Why you don't have to wait: You can build your APIs and test them using Postman. You don't need the UI or the Node.js service to finish your Python logic.
+
+Person 2: The Data Scientist & Community Lead (Node.js + Python)
+
+Branch: backend-node-analytics
+User Personas: Advocate/Analyst (Trends), Worker Community (Grievances)
+
+Core Functionalities Assigned:
+
+Grievance Service (Node.js):
+
+Mandatory Requirement: You must use Node.js here.
+
+Build the CRUD for the "Grievance Board." Workers post complaints; Advocates can "tag" them (e.g., #Underpaid, #Banned).
+
+Analytics Service:
+
+The "Median" Logic: Write an API that looks at all workers in the DB and calculates the average pay for "Uber" in "Lahore."
+
+Vulnerability Flag: Create a query that finds any worker whose income dropped >20% month-on-month.
+
+The "Seeder" Script:
+
+Crucial for Judging: Write a script to insert 1,000 fake "verified" earnings into the DB. Without this, Person 3 cannot show any pretty charts, and Person 1's AI won't have "history" to look at.
+
+Certificate JSON: Create a clean API that fetches all verified logs for a specific worker so the frontend can print them.
+
+Why you don't have to wait: You are working in Node.js while the others are in Python/React. Your primary job is the "Big Picture" data.
+
+Person 3: The Frontend & UX Architect (React)
+
+Branch: frontend-ui
+User Personas: All three (The face of the app)
+
+Core Functionalities Assigned:
+
+Role-Based Routing: Create three distinct "Home" views:
+
+Worker: Form to log shifts, a big "Download Certificate" button, and a chart (My Pay vs. City Median).
+
+Verifier: A simple dashboard showing a list of pending logs and uploaded screenshots.
+
+Advocate: A dashboard with high-level charts (e.g., "FoodPanda commission trend in May").
+
+Data Visualization: Use Recharts to build the graphs.
+
+Income Certificate (The "Winning" Feature):
+
+Create a clean, printable HTML page.
+
+Use CSS @media print { ... } to hide the sidebar/header when printing so it looks like a real bank document.
+
+Mock Integration:
+
+Parallel Secret: Since the backends aren't done, create a const mockData = [...] for every page. Build the entire UI using this fake data. In the last 4 hours, you will replace mockData with axios.get().
+
+Why you don't have to wait: By using mockData, you can finish the entire UI before your friends even finish their first API.
+
+Mapping to the Architecture Requirements
+Requirement	Assigned To	Tech
+Anomaly Service	Person 1	Python FastAPI
+Earnings Service	Person 1	Python FastAPI
+Grievance Service	Person 2	Node.js
+Analytics Panel	Person 2 (Data) + Person 3 (UI)	SQL + React
+Income Certificate	Person 3 (UI) + Person 2 (Data)	HTML/CSS
+Database Choice	All (Led by Person 1)	Postgres/MySQL
+How to Merge (The "Happy Hour")
+
+Hour 20: Person 1 and Person 2 deploy their services (or run them on specific ports like 8000 and 5000).
+
+Hour 21: Person 3 changes the baseURL in their React code to point to the real APIs.
+
+Hour 22: Run the Seeder Script (Person 2) to make the app look alive.
+
+Hour 23: Fix any "CORS" errors (Common hackathon bug).
+
+Hour 24: Submit.
+
+Full Depth Tip: Person 1, make sure your Anomaly Service is documented. The judges said: "judges will call it directly with a crafted payload." This means your API must be public and easy to test for them.

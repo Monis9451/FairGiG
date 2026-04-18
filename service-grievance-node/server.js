@@ -5,12 +5,36 @@ import rateLimit from "express-rate-limit";
 import hpp from "hpp";
 import axios from "axios";
 import dotenv from "dotenv";
+import path from "path";
+import fs from "fs";
+import { fileURLToPath } from "url";
+import { createRequire } from "module";
+import YAML from "yaml";
+
+const require = createRequire(import.meta.url);
+const swaggerUi = require("swagger-ui-express");
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 dotenv.config({ quiet: true });
 
 const app = express();
 const PORT = Number(process.env.PORT) || 5000;
 const NODE_ENV = process.env.NODE_ENV || "development";
+
+const openApiPath = path.join(__dirname, "docs", "openapi.yaml");
+let openApiDocument;
+try {
+  openApiDocument = YAML.parse(fs.readFileSync(openApiPath, "utf8"));
+} catch (err) {
+  console.warn("OpenAPI spec not loaded:", err.message);
+  openApiDocument = {
+    openapi: "3.0.3",
+    info: { title: "FairGiG API", version: "0.0.0" },
+    paths: {},
+  };
+}
 
 const ALLOWED_ORIGINS = (process.env.CORS_ORIGIN || "http://localhost:5173")
   .split(",")
@@ -72,6 +96,14 @@ app.set("trust proxy", 1);
 app.use(
   helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
+    contentSecurityPolicy: {
+      directives: {
+        ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+        "script-src": ["'self'", "'unsafe-inline'"],
+        "style-src": ["'self'", "'unsafe-inline'"],
+        "img-src": ["'self'", "data:", "https:"],
+      },
+    },
   })
 );
 
@@ -164,6 +196,26 @@ app.get("/services/health", async (_req, res, next) => {
     return next(error);
   }
 });
+
+app.get("/openapi.yaml", (_req, res) => {
+  res.type("application/yaml").send(fs.readFileSync(openApiPath, "utf8"));
+});
+
+app.get("/openapi.json", (_req, res) => {
+  res.json(openApiDocument);
+});
+
+app.use(
+  "/api-docs",
+  swaggerUi.serve,
+  swaggerUi.setup(openApiDocument, {
+    customSiteTitle: "FairGiG API",
+    swaggerOptions: {
+      persistAuthorization: true,
+      tryItOutEnabled: true,
+    },
+  })
+);
 
 app.use((req, res) => {
   res.status(404).json({

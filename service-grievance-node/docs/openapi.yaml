@@ -1,0 +1,150 @@
+openapi: 3.0.3
+info:
+  title: FairGiG Node API
+  description: |
+    Grievance / analytics / certificate service (Express). **Edit this file** as you add routes so the team stays in sync via GitHub.
+
+    - Interactive docs: `/api-docs`
+    - Raw spec: `/openapi.yaml` or `/openapi.json`
+  version: 0.1.0
+
+servers:
+  - url: http://localhost:5000
+    description: Local (override PORT in `.env` if needed)
+  - url: /
+    description: Same origin (Try it out uses current host)
+
+tags:
+  - name: System
+    description: Health and gateway checks
+  - name: Documentation
+    description: OpenAPI delivery
+
+paths:
+  /:
+    get:
+      tags: [System]
+      summary: Root
+      operationId: getRoot
+      responses:
+        "200":
+          description: Service is up
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeMessage"
+
+  /health:
+    get:
+      tags: [System]
+      summary: Liveness
+      operationId: getHealth
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeHealth"
+
+  /services/health:
+    get:
+      tags: [System]
+      summary: Downstream Python services (optional)
+      description: |
+        Probes `ANOMALY_SERVICE_URL` and `ANALYTICS_SERVICE_URL` `/health` when those env vars are set.
+      operationId: getServicesHealth
+      responses:
+        "200":
+          description: Probe results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeServicesHealth"
+
+  /openapi.yaml:
+    get:
+      tags: [Documentation]
+      summary: OpenAPI document (YAML)
+      operationId: getOpenApiYaml
+      responses:
+        "200":
+          description: YAML spec
+          content:
+            application/yaml:
+              schema:
+                type: string
+
+  /openapi.json:
+    get:
+      tags: [Documentation]
+      summary: OpenAPI document (JSON)
+      operationId: getOpenApiJson
+      responses:
+        "200":
+          description: JSON spec
+          content:
+            application/json:
+              schema:
+                type: object
+
+components:
+  schemas:
+    EnvelopeMessage:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            message:
+              type: string
+              example: FairGiG backend is running
+        error:
+          nullable: true
+          example: null
+
+    EnvelopeHealth:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            service:
+              type: string
+              example: fairgig-backend
+            status:
+              type: string
+              example: ok
+        error:
+          nullable: true
+
+    EnvelopeServicesHealth:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            services:
+              type: array
+              items:
+                type: object
+                properties:
+                  service:
+                    type: string
+                  reachable:
+                    type: boolean
+                  statusCode:
+                    nullable: true
+                    type: integer
+            message:
+              type: string
+              description: Present when no downstream URLs are configured
+        error:
+          nullable: true
