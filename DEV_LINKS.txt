@@ -17,6 +17,10 @@ Useful dashboard pages:
 - SQL editor:       https://supabase.com/dashboard/project/cylloibqpsqqcesmsigg/sql/new
 - Auth users:       https://supabase.com/dashboard/project/cylloibqpsqqcesmsigg/auth/users
 
+Repo SQL (paste into SQL editor as needed):
+- database/on_auth_user_create_profile.sql — auto-create profile on sign-up
+- database/seed_auth_users.sql — dev users (worker / verifier / advocate) + auth + profiles; password in file header
+
 Tables in schema "public" (from Supabase; RLS enabled on all)
 --------------------------------------------------------------
 1) profiles
