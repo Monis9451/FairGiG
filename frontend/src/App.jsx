@@ -4,7 +4,9 @@ import Register from './pages/auth/Register'
 import WorkerDashboard from './pages/worker/WorkerDashboard'
 import VerifierDashboard from './pages/verifier/VerifierDashboard'
 import AdvocateDashboard from './pages/advocate/AdvocateDashboard'
+import CommunityPage from './pages/community/CommunityPage'
 import ProtectedRoute from './components/ProtectedRoute'
+import { AppShellLayout } from './components/layout/AppShellLayout'
 import useAuthStore from './store/authStore'
 
 const App = () => {
@@ -32,19 +34,33 @@ const App = () => {
       />
 
       <Route element={<ProtectedRoute allowedRoles={['worker']} />}>
-        <Route path="/worker" element={<WorkerDashboard />} />
+        <Route element={<AppShellLayout />}>
+          <Route path="/worker" element={<WorkerDashboard />} />
+        </Route>
       </Route>
 
       <Route element={<ProtectedRoute allowedRoles={['verifier']} />}>
-        <Route path="/verifier" element={<VerifierDashboard />} />
+        <Route element={<AppShellLayout />}>
+          <Route path="/verifier" element={<VerifierDashboard />} />
+        </Route>
       </Route>
 
       <Route element={<ProtectedRoute allowedRoles={['advocate']} />}>
-        <Route path="/advocate" element={<AdvocateDashboard />} />
+        <Route element={<AppShellLayout />}>
+          <Route path="/advocate" element={<AdvocateDashboard />} />
+        </Route>
+      </Route>
+
+      <Route element={<ProtectedRoute allowedRoles={['worker', 'verifier', 'advocate', 'analyst']} />}>
+        <Route element={<AppShellLayout />}>
+          <Route path="/community" element={<CommunityPage />} />
+        </Route>
       </Route>
 
       <Route element={<ProtectedRoute allowedRoles={['analyst']} />}>
-        <Route path="/analyst" element={<AdvocateDashboard />} />
+        <Route element={<AppShellLayout />}>
+          <Route path="/analyst" element={<AdvocateDashboard />} />
+        </Route>
       </Route>
 
       <Route

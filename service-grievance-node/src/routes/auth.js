@@ -140,8 +140,12 @@ router.post(
     });
 
     if (error) {
-      const msg = error.message || "Login failed.";
+      let msg = error.message || "Login failed.";
       const lower = msg.toLowerCase();
+      if (lower.includes("database error querying schema")) {
+        msg =
+          "This account cannot sign in because auth data is incomplete (often true for users created with a raw SQL insert). Run database/fix_auth_users_null_tokens.sql in the Supabase SQL editor, or recreate the user via signup / Dashboard → Authentication.";
+      }
       const authFailure =
         lower.includes("invalid login credentials") ||
         lower.includes("invalid credentials") ||

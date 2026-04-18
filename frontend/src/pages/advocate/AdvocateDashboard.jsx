@@ -1,25 +1,16 @@
-import { useNavigate } from 'react-router-dom'
 import useAuthStore from '@/store/authStore'
 
 const AdvocateDashboard = () => {
-  const navigate = useNavigate()
-  const clearAuth = useAuthStore((state) => state.clearAuth)
-
-  const handleLogout = () => {
-    clearAuth()
-    navigate('/login', { replace: true })
-  }
+  const role = useAuthStore((s) => s.profile?.role)
+  const title = role === 'analyst' ? 'Analyst dashboard' : 'Advocate dashboard'
 
   return (
-    <div className="p-6">
-      <h1 className="mb-4 text-2xl font-bold">Advocate Dashboard</h1>
-      <button
-        type="button"
-        onClick={handleLogout}
-        className="rounded-md border border-brand-primary bg-brand-primary px-4 py-2 text-sm font-semibold text-brand-light transition-opacity hover:opacity-90"
-      >
-        Logout
-      </button>
+    <div className="min-h-full bg-brand-light p-4 sm:p-6 md:p-8">
+      <h1 className="text-2xl font-extrabold text-brand-darkest sm:text-3xl">{title}</h1>
+      <p className="mt-2 max-w-xl text-sm leading-relaxed text-brand-muted sm:text-base">
+        Use the sidebar for <strong className="text-brand-dark">Community</strong> (feed and moderation where your role
+        allows) and this home view. Role-specific panels will grow here.
+      </p>
     </div>
   )
 }

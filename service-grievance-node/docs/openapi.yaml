@@ -4,7 +4,7 @@ info:
   description: |
     Express service for grievances, analytics, and certificate endpoints.
     Interactive docs are available at /api-docs.
-    Grievances, analytics, and certificates require `Authorization: Bearer` (Supabase access token).
+    Grievances, analytics, certificates, and worker community require `Authorization: Bearer` (Supabase access token).
   version: 0.2.0
 
 servers:
@@ -32,6 +32,9 @@ tags:
   - name: BFF Python
     description: |
       Proxied to FastAPI (earnings / anomaly). Same Bearer token as other APIs. Full schemas in Python Swagger (e.g. :8000/docs).
+  - name: Community
+    description: |
+      Worker bulletin (4th persona): anonymous to peers on the public feed; advocates moderate (pending → visible/hidden/removed).
 
 paths:
   /:
@@ -666,6 +669,259 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/EnvelopeCertificate"
+
+  /api/community/feed:
+    get:
+      tags: [Community]
+      summary: Community feed (no author)
+      description: |
+        Only visible posts; peers never see who wrote them.
+        Search matches title, body, or category (case-insensitive, server-side).
+        Pagination: `total` is the full match count; `returned` is this page length.
+        Each item includes `upvote_count`, `comment_count`, and `viewer_upvoted` when `database/community_engagement.sql` is applied.
+      operationId: getCommunityFeed
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: category
+          schema:
+            type: string
+        - in: query
+          name: platform
+          schema:
+            type: string
+        - in: query
+          name: search
+          description: Substring match on title, body, or category (wildcards % and _ stripped).
+          schema:
+            type: string
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: |
+            Feed items and pagination with `total` (matching rows) and `returned` (items in this response).
+        "401":
+          description: Missing or invalid token
+
+  /api/community/mine:
+    get:
+      tags: [Community]
+      summary: My community posts
+      description: Worker role only.
+      operationId: getCommunityMine
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Own posts with moderation fields
+        "403":
+          description: Not a worker
+
+  /api/community:
+    post:
+      tags: [Community]
+      summary: Create community post
+      description: Worker only; status starts pending until advocate approves.
+      operationId: createCommunityPost
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                title:
+                  type: string
+                body:
+                  type: string
+                platform:
+                  type: string
+                category:
+                  type: string
+                tags:
+                  oneOf:
+                    - type: string
+                    - type: array
+                      items:
+                        type: string
+      responses:
+        "201":
+          description: Created
+        "403":
+          description: Not a worker
+
+  /api/community/moderation:
+    get:
+      tags: [Community]
+      summary: Moderation queue
+      description: |
+        Advocate only; responses include author_id.
+        Pagination: `limit` (default 50, max 200), `offset` (max 5000); body includes `pagination.total` and `pagination.returned`.
+      operationId: getCommunityModeration
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [pending, visible, hidden, removed]
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Posts for moderation with pagination
+        "403":
+          description: Not an advocate
+
+  /api/community/{id}/upvote:
+    post:
+      tags: [Community]
+      summary: Toggle upvote on a visible post
+      description: One upvote per user per post; calling again removes the upvote.
+      operationId: toggleCommunityPostUpvote
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: New counts after toggle
+        "404":
+          description: Post not visible or missing
+
+  /api/community/{id}/comments:
+    get:
+      tags: [Community]
+      summary: List comments (visible posts only)
+      description: Anonymous — no author fields returned.
+      operationId: getCommunityPostComments
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 80
+      responses:
+        "200":
+          description: Comments
+        "404":
+          description: Post not found
+    post:
+      tags: [Community]
+      summary: Add comment on a visible post
+      operationId: createCommunityPostComment
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                body:
+                  type: string
+                  maxLength: 4000
+      responses:
+        "201":
+          description: Created
+        "404":
+          description: Post not open for comments
+
+  /api/community/{id}:
+    patch:
+      tags: [Community]
+      summary: Moderate or edit pending post
+      description: |
+        Advocate may set `status` (visible, hidden, or removed only), `moderator_note`, and `tags`.
+        Worker may edit own post only while status is pending (`title`, `body`, `platform`, `category`, `tags`); workers must not send `status`.
+      operationId: patchCommunityPost
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  description: Advocate only. Cannot set back to pending.
+                  enum: [visible, hidden, removed]
+                moderator_note:
+                  type: string
+                  nullable: true
+                tags:
+                  oneOf:
+                    - type: string
+                    - type: array
+                      items:
+                        type: string
+                title:
+                  type: string
+                body:
+                  type: string
+                platform:
+                  type: string
+                category:
+                  type: string
+      responses:
+        "200":
+          description: Updated
+        "403":
+          description: Not allowed
+        "404":
+          description: Not found
 
 components:
   securitySchemes:
