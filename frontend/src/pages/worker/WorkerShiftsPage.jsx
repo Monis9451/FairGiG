@@ -103,13 +103,11 @@ const WorkerShiftsPage = () => {
   const createShiftMutation = useMutation({
     mutationFn: (payload) => createWorkerShiftLog(payload),
     onSuccess: (data) => {
-      const created = data?.shift_log
       setNotice({ type: 'success', message: 'Shift log created successfully.' })
       queryClient.invalidateQueries({ queryKey: ['worker-shift-logs'] })
 
-      if (created) {
-        analyzeMutation.mutate(buildAnalyzePayload(shiftItems, created))
-      }
+      // Do not auto-call anomaly here: it doubles latency and fails the whole flow with 502/504
+      // if the anomaly service is down or slow. Workers can run "Check anomaly" when needed.
 
       setScreenshotFile(null)
       setUploadedScreenshot(null)
