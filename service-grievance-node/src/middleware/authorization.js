@@ -1,7 +1,16 @@
-/** Roles that may access any worker's data (within these routes). */
-export const STAFF_ROLES = new Set(["verifier", "advocate"]);
+/**
+ * Cross-worker staff: verifier, advocate, analyst.
+ * Advocate and analyst share the same product permissions; verifier retains shift verification on earnings.
+ */
+export const STAFF_ROLES = new Set(["verifier", "advocate", "analyst"]);
+
+/** Community moderation: advocate and analyst (identical access). */
+export const COMMUNITY_MODERATOR_ROLES = new Set(["advocate", "analyst"]);
 
 export const isStaff = (profile) => Boolean(profile?.role && STAFF_ROLES.has(profile.role));
+
+export const isCommunityModerator = (profile) =>
+  Boolean(profile?.role && COMMUNITY_MODERATOR_ROLES.has(profile.role));
 
 /**
  * After attachProfile — rejects if no public.profiles row.

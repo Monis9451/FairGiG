@@ -1,4 +1,4 @@
--- FairGiG — worker community bulletin (anonymous to peers; advocates moderate).
+-- FairGiG — worker community bulletin (anonymous to peers; advocates & analysts moderate).
 -- Run in Supabase SQL Editor, or applied via Supabase migration / MCP.
 
 do $$
@@ -57,7 +57,7 @@ create policy "community_posts_advocate_select"
   using (
     exists (
       select 1 from public.profiles p
-      where p.id = auth.uid() and p.role = 'advocate'
+      where p.id = auth.uid() and p.role in ('advocate', 'analyst')
     )
   );
 
@@ -68,13 +68,13 @@ create policy "community_posts_advocate_update"
   using (
     exists (
       select 1 from public.profiles p
-      where p.id = auth.uid() and p.role = 'advocate'
+      where p.id = auth.uid() and p.role in ('advocate', 'analyst')
     )
   )
   with check (
     exists (
       select 1 from public.profiles p
-      where p.id = auth.uid() and p.role = 'advocate'
+      where p.id = auth.uid() and p.role in ('advocate', 'analyst')
     )
   );
 

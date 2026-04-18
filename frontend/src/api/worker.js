@@ -89,3 +89,20 @@ export const getWorkerCertificate = async ({ workerId, from, to }) => {
 
   return unwrapResponseData(response)
 }
+
+/** Weekly or monthly aggregates; excludes unverifiable logs from sums. */
+export const getWorkerEarningsTrends = async ({
+  granularity = 'month',
+  lookbackMonths = 18,
+  platform,
+} = {}) => {
+  const response = await apiClient.get('/api/analytics/worker/earnings-trends', {
+    params: {
+      granularity,
+      lookback_months: lookbackMonths,
+      platform: platform || undefined,
+    },
+  })
+
+  return unwrapResponseData(response)
+}
