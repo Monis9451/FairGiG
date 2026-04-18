@@ -71,7 +71,7 @@ export function AppShellLayout() {
       'flex min-h-[48px] items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors touch-manipulation md:min-h-0 md:py-3',
       isActive
         ? 'bg-brand-primary text-brand-light shadow-md shadow-brand-primary/25'
-        : 'text-brand-light/88 hover:bg-white/10 hover:text-white'
+        : 'text-brand-light/80 hover:bg-white/10 hover:text-white'
     )
 
   const SidebarFooter = () => (
