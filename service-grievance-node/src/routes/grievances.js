@@ -8,6 +8,7 @@ import {
   parseTagsInput,
   success,
 } from "../lib/http.js";
+import { isStaff } from "../middleware/authorization.js";
 import { getSupabaseClient } from "../lib/supabase.js";
 
 const router = express.Router();
@@ -54,8 +55,13 @@ router.post(
   asyncHandler(async (req, res) => {
     const supabase = getSupabaseClient();
 
+    const workerId =
+      req.profile.role === "worker"
+        ? req.authUser.id
+        : ensureRequiredString(req.body.worker_id, "worker_id");
+
     const payload = {
-      worker_id: ensureRequiredString(req.body.worker_id, "worker_id"),
+      worker_id: workerId,
       platform: ensureRequiredString(req.body.platform, "platform"),
       category: ensureRequiredString(req.body.category, "category"),
       description: ensureRequiredString(req.body.description, "description"),
@@ -97,7 +103,10 @@ router.get(
     const limit = parseBoundedInt(req.query.limit, 50, { min: 1, max: 200 });
     const offset = parseBoundedInt(req.query.offset, 0, { min: 0, max: 5000 });
 
-    const workerId = String(req.query.worker_id || "").trim();
+    let workerId = String(req.query.worker_id || "").trim();
+    if (!isStaff(req.profile)) {
+      workerId = req.authUser.id;
+    }
     const platform = String(req.query.platform || "").trim();
     const category = String(req.query.category || "").trim();
     const status = String(req.query.status || "").trim().toLowerCase();
@@ -182,6 +191,10 @@ router.get(
       throw new HttpError(404, "Grievance not found.");
     }
 
+    if (!isStaff(req.profile) && data.worker_id !== req.authUser.id) {
+      throw new HttpError(404, "Grievance not found.");
+    }
+
     return res.status(200).json(success({ grievance: mapGrievance(data) }));
   })
 );
@@ -219,20 +232,22 @@ router.patch(
       throw new HttpError(400, "No valid update fields were provided.");
     }
 
-    let result = await supabase
-      .from("grievances")
-      .update(updates)
-      .eq("id", grievanceId)
-      .select("*")
-      .maybeSingle();
+    let patchQuery = supabase.from("grievances").update(updates).eq("id", grievanceId);
+    if (!isStaff(req.profile)) {
+      patchQuery = patchQuery.eq("worker_id", req.authUser.id);
+    }
+
+    let result = await patchQuery.select("*").maybeSingle();
 
     if (result.error && updates.tags && canFallbackToStringTags(result.error)) {
-      result = await supabase
+      let retry = supabase
         .from("grievances")
         .update({ ...updates, tags: updates.tags.join(",") })
-        .eq("id", grievanceId)
-        .select("*")
-        .maybeSingle();
+        .eq("id", grievanceId);
+      if (!isStaff(req.profile)) {
+        retry = retry.eq("worker_id", req.authUser.id);
+      }
+      result = await retry.select("*").maybeSingle();
     }
 
     if (result.error) {
@@ -259,11 +274,12 @@ router.post(
       throw new HttpError(400, "At least one tag is required.");
     }
 
-    const { data: current, error: fetchError } = await supabase
-      .from("grievances")
-      .select("id, tags")
-      .eq("id", grievanceId)
-      .maybeSingle();
+    let fetchTags = supabase.from("grievances").select("id, tags").eq("id", grievanceId);
+    if (!isStaff(req.profile)) {
+      fetchTags = fetchTags.eq("worker_id", req.authUser.id);
+    }
+
+    const { data: current, error: fetchError } = await fetchTags.maybeSingle();
 
     if (fetchError) {
       throw new HttpError(500, "Failed to fetch current grievance tags.", fetchError.message);
@@ -278,20 +294,25 @@ router.post(
       ...incomingTags,
     ]);
 
-    let result = await supabase
+    let tagUpdate = supabase
       .from("grievances")
       .update({ tags: mergedTags })
-      .eq("id", grievanceId)
-      .select("*")
-      .maybeSingle();
+      .eq("id", grievanceId);
+    if (!isStaff(req.profile)) {
+      tagUpdate = tagUpdate.eq("worker_id", req.authUser.id);
+    }
+
+    let result = await tagUpdate.select("*").maybeSingle();
 
     if (result.error && canFallbackToStringTags(result.error)) {
-      result = await supabase
+      let retry = supabase
         .from("grievances")
         .update({ tags: mergedTags.join(",") })
-        .eq("id", grievanceId)
-        .select("*")
-        .maybeSingle();
+        .eq("id", grievanceId);
+      if (!isStaff(req.profile)) {
+        retry = retry.eq("worker_id", req.authUser.id);
+      }
+      result = await retry.select("*").maybeSingle();
     }
 
     if (result.error) {
@@ -309,12 +330,12 @@ router.delete(
 
     const grievanceId = ensureRequiredString(req.params.id, "id");
 
-    const { data, error } = await supabase
-      .from("grievances")
-      .delete()
-      .eq("id", grievanceId)
-      .select("id")
-      .maybeSingle();
+    let del = supabase.from("grievances").delete().eq("id", grievanceId);
+    if (!isStaff(req.profile)) {
+      del = del.eq("worker_id", req.authUser.id);
+    }
+
+    const { data, error } = await del.select("id").maybeSingle();
 
     if (error) {
       throw new HttpError(500, "Failed to delete grievance.", error.message);

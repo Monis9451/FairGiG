@@ -11,6 +11,7 @@ import { createRequire } from "module";
 import YAML from "yaml";
 
 import { attachProfile, requireAuth, requireRole } from "./src/middleware/auth.js";
+import { requireProfile } from "./src/middleware/authorization.js";
 import { env } from "./src/config/env.js";
 import grievanceRoutes from "./src/routes/grievances.js";
 import analyticsRoutes from "./src/routes/analytics.js";
@@ -262,9 +263,11 @@ app.get(
 
 app.use("/api/v1/auth", authRoutes);
 
-app.use("/api/grievances", grievanceRoutes);
-app.use("/api/analytics", analyticsRoutes);
-app.use("/api/certificates", certificateRoutes);
+const dataRoutesAuth = [requireAuth, attachProfile, requireProfile];
+
+app.use("/api/grievances", ...dataRoutesAuth, grievanceRoutes);
+app.use("/api/analytics", ...dataRoutesAuth, analyticsRoutes);
+app.use("/api/certificates", ...dataRoutesAuth, certificateRoutes);
 
 app.use((req, res) => {
   res.status(404).json({

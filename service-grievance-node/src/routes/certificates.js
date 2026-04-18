@@ -1,6 +1,7 @@
 import express from "express";
 
 import { HttpError, asyncHandler, roundTo, success } from "../lib/http.js";
+import { isStaff } from "../middleware/authorization.js";
 import { getSupabaseClient } from "../lib/supabase.js";
 
 const router = express.Router();
@@ -18,6 +19,10 @@ router.get(
 
     if (!workerId) {
       throw new HttpError(400, "workerId is required.");
+    }
+
+    if (!isStaff(req.profile) && workerId !== req.authUser.id) {
+      throw new HttpError(403, "You can only access your own certificate data.");
     }
 
     if (fromDate && !isIsoDate(fromDate)) {
