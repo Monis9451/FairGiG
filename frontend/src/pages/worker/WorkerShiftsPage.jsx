@@ -24,6 +24,12 @@ import {
   shiftBadgeClassByStatus,
 } from '@/features/worker/utils'
 
+const getTodayLocalDate = () => {
+  const now = new Date()
+  const timezoneOffsetMs = now.getTimezoneOffset() * 60 * 1000
+  return new Date(now.getTime() - timezoneOffsetMs).toISOString().slice(0, 10)
+}
+
 const WorkerShiftsPage = () => {
   const queryClient = useQueryClient()
 
@@ -46,7 +52,7 @@ const WorkerShiftsPage = () => {
     resolver: zodResolver(shiftFormSchema),
     defaultValues: {
       platform: 'Uber',
-      date: new Date().toISOString().slice(0, 10),
+      date: getTodayLocalDate(),
       hours_worked: 8,
       gross_earned: 0,
       deductions: 0,
@@ -110,7 +116,7 @@ const WorkerShiftsPage = () => {
 
   const createShiftMutation = useMutation({
     mutationFn: (payload) => createWorkerShiftLog(payload),
-    onSuccess: (data) => {
+    onSuccess: () => {
       setNotice({ type: 'success', message: 'Shift log created successfully.' })
       queryClient.invalidateQueries({ queryKey: ['worker-shift-logs'] })
 
@@ -122,7 +128,7 @@ const WorkerShiftsPage = () => {
 
       reset({
         platform: selectedPlatform,
-        date: new Date().toISOString().slice(0, 10),
+        date: getTodayLocalDate(),
         hours_worked: 8,
         gross_earned: 0,
         deductions: 0,
