@@ -78,6 +78,42 @@ service-anomaly-python/.env.example
 
 Copy to .env in each service folder and paste Supabase keys from Project Settings → API.
 
+Local wiring (three terminals)
+------------------------------
+From repo root, only create .env if you do not have one yet:
+
+  test -f service-grievance-node/.env    || cp service-grievance-node/.env.example service-grievance-node/.env
+  test -f service-earnings-python/.env   || cp service-earnings-python/.env.example service-earnings-python/.env
+  test -f service-anomaly-python/.env    || cp service-anomaly-python/.env.example service-anomaly-python/.env
+
+Then fill Supabase keys in each `.env`. Grievance-node also needs `ANOMALY_SERVICE_URL=http://localhost:8001` and `EARNINGS_SERVICE_URL=http://localhost:8000` (see its `.env.example`).
+
+Terminal A — earnings (8000):
+
+  cd service-earnings-python
+  python3 -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
+  pip install -r requirements.txt
+  uvicorn app.main:app --host 127.0.0.1 --port 8000
+
+Terminal B — anomaly (8001):
+
+  cd service-anomaly-python
+  python3 -m venv .venv && source .venv/bin/activate
+  pip install -r requirements.txt
+  uvicorn app.main:app --host 127.0.0.1 --port 8001
+
+Terminal C — Node (5000):
+
+  cd service-grievance-node
+  npm install
+  npm run dev
+
+Check downstream reachability (Node probes `GET {base}/health` on each Python base URL):
+
+  curl -s http://localhost:5000/services/health
+
+You want `"reachable": true` for earnings and anomaly when both Python apps are up. Root health on Python: http://localhost:8000/health and http://localhost:8001/health
+
 GitHub
 ------
 Use your team repo URL here (clone / PRs). Example pattern:
