@@ -19,7 +19,7 @@ Useful dashboard pages:
 
 Repo SQL (paste into SQL editor as needed):
 - database/on_auth_user_create_profile.sql — auto-create profile on sign-up
-- database/seed_auth_users.sql — dev users (worker / verifier / advocate) + auth + profiles; password in file header
+- database/seed_auth_users.sql — 25 dev users (20 workers, 3 verifiers, 2 advocates) seed.*@fairgig.dev + auth + profiles; password in file header
 
 Tables in schema "public" (from Supabase; RLS enabled on all)
 --------------------------------------------------------------
@@ -57,7 +57,7 @@ Node (service-grievance-node), default PORT=5000:
   - GET http://localhost:5000/api/v1/verifier/ping  (role: verifier only; requires Bearer)
 - Swagger UI:       http://localhost:5000/api-docs
 - OpenAPI file:     `service-grievance-node/docs/openapi.yaml` (also served at `/openapi.yaml` and `/openapi.json`)
-- Node API examples: `/api/grievances`, `/api/analytics/...`, `/api/certificates/...` (see Swagger)
+- Data APIs need `Authorization: Bearer <access_token>`: `/api/grievances`, `/api/analytics/...`, `/api/certificates/...` (see Swagger)
 
 Python — Earnings (service-earnings-python), default PORT=8000:
 - Swagger / docs:   http://localhost:8000/docs
@@ -69,6 +69,16 @@ Python — Anomaly (service-anomaly-python), default PORT=8001:
 
 Frontend (when added; Vite default):
 - http://localhost:5173
+- Copy `frontend/.env.example` → `frontend/.env` — use `VITE_API_BASE_URL=http://localhost:5000` only (no direct :8000 / :8001 in the browser).
+
+BFF (Node → Python; same Bearer as `/api/v1/me`)
+-------------------------------------------------
+All requests use the Node host (e.g. http://localhost:5000) + `Authorization: Bearer <access_token>`.
+
+- Earnings (proxied to FastAPI `/api/v1/...`): `/api/v1/earnings/status`, `/api/v1/earnings/shift-logs`, POST import-csv, PATCH `.../verification`, etc.
+- Anomaly: `/api/v1/anomaly/status` (and future `/api/v1/analyze` when implemented in Python).
+
+OpenAPI: tag **BFF Python** in `service-grievance-node/docs/openapi.yaml`; detailed request/response shapes still in Python `/docs` on 8000/8001.
 
 Environment templates
 ---------------------
@@ -77,6 +87,42 @@ service-earnings-python/.env.example
 service-anomaly-python/.env.example
 
 Copy to .env in each service folder and paste Supabase keys from Project Settings → API.
+
+Local wiring (three terminals)
+------------------------------
+From repo root, only create .env if you do not have one yet:
+
+  test -f service-grievance-node/.env    || cp service-grievance-node/.env.example service-grievance-node/.env
+  test -f service-earnings-python/.env   || cp service-earnings-python/.env.example service-earnings-python/.env
+  test -f service-anomaly-python/.env    || cp service-anomaly-python/.env.example service-anomaly-python/.env
+
+Then fill Supabase keys in each `.env`. Grievance-node also needs `ANOMALY_SERVICE_URL=http://localhost:8001` and `EARNINGS_SERVICE_URL=http://localhost:8000` (see its `.env.example`).
+
+Terminal A — earnings (8000):
+
+  cd service-earnings-python
+  python3 -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
+  pip install -r requirements.txt
+  uvicorn app.main:app --host 127.0.0.1 --port 8000
+
+Terminal B — anomaly (8001):
+
+  cd service-anomaly-python
+  python3 -m venv .venv && source .venv/bin/activate
+  pip install -r requirements.txt
+  uvicorn app.main:app --host 127.0.0.1 --port 8001
+
+Terminal C — Node (5000):
+
+  cd service-grievance-node
+  npm install
+  npm run dev
+
+Check downstream reachability (Node probes `GET {base}/health` on each Python base URL):
+
+  curl -s http://localhost:5000/services/health
+
+You want `"reachable": true` for earnings and anomaly when both Python apps are up. Root health on Python: http://localhost:8000/health and http://localhost:8001/health
 
 GitHub
 ------

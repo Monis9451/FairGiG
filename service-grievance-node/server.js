@@ -11,11 +11,13 @@ import { createRequire } from "module";
 import YAML from "yaml";
 
 import { attachProfile, requireAuth, requireRole } from "./src/middleware/auth.js";
+import { requireProfile } from "./src/middleware/authorization.js";
 import { env } from "./src/config/env.js";
 import grievanceRoutes from "./src/routes/grievances.js";
 import analyticsRoutes from "./src/routes/analytics.js";
 import certificateRoutes from "./src/routes/certificates.js";
 import authRoutes from "./src/routes/auth.js";
+import { downstreamBff } from "./src/middleware/downstreamBff.js";
 
 const require = createRequire(import.meta.url);
 const swaggerUi = require("swagger-ui-express");
@@ -143,6 +145,18 @@ app.use(
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   })
 );
+
+/* Auth signup/login (needs JSON body). */
+app.use("/api/v1/auth", express.json({ limit: "100kb" }), authRoutes);
+
+/*
+ * BFF → Python FastAPI (stream bodies; must run before global express.json()).
+ * Browser calls only Node: /api/v1/earnings/* → earnings /api/v1/*, same for anomaly.
+ */
+const bffAuth = [requireAuth, attachProfile, requireProfile];
+app.use("/api/v1/earnings", ...bffAuth, downstreamBff("earnings"));
+app.use("/api/v1/anomaly", ...bffAuth, downstreamBff("anomaly"));
+
 app.use(express.json({ limit: "100kb" }));
 app.use(express.urlencoded({ extended: false, limit: "100kb" }));
 
@@ -260,11 +274,11 @@ app.get(
   }
 );
 
-app.use("/api/v1/auth", authRoutes);
+const dataRoutesAuth = [requireAuth, attachProfile, requireProfile];
 
-app.use("/api/grievances", grievanceRoutes);
-app.use("/api/analytics", analyticsRoutes);
-app.use("/api/certificates", certificateRoutes);
+app.use("/api/grievances", ...dataRoutesAuth, grievanceRoutes);
+app.use("/api/analytics", ...dataRoutesAuth, analyticsRoutes);
+app.use("/api/certificates", ...dataRoutesAuth, certificateRoutes);
 
 app.use((req, res) => {
   res.status(404).json({

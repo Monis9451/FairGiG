@@ -4,6 +4,7 @@ info:
   description: |
     Express service for grievances, analytics, and certificate endpoints.
     Interactive docs are available at /api-docs.
+    Grievances, analytics, and certificates require `Authorization: Bearer` (Supabase access token).
   version: 0.2.0
 
 servers:
@@ -20,11 +21,17 @@ tags:
   - name: Auth
     description: Signup/login (anon key), JWT (Supabase access token) for /me, profiles
   - name: Grievances
-    description: Grievance board CRUD and tagging
+    description: |
+      Grievance CRUD (JWT). Workers see and edit only their rows; verifier/advocate may filter by any worker_id or manage all.
   - name: Analytics
-    description: Benchmark and vulnerability metrics
+    description: |
+      Benchmarks (JWT). Workers may only query their own city_zone; vulnerability flags are verifier/advocate only.
   - name: Certificates
-    description: Verified earnings certificate data
+    description: |
+      Verified earnings for a worker (JWT). Workers may only request their own workerId; staff may request any.
+  - name: BFF Python
+    description: |
+      Proxied to FastAPI (earnings / anomaly). Same Bearer token as other APIs. Full schemas in Python Swagger (e.g. :8000/docs).
 
 paths:
   /:
@@ -204,14 +211,153 @@ paths:
         "503":
           description: Server missing SUPABASE_ANON_KEY
 
+  /api/v1/earnings/status:
+    get:
+      tags: [BFF Python]
+      summary: Earnings service status (proxied)
+      description: Forwards to FastAPI GET /api/v1/status.
+      operationId: bffEarningsStatus
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Earnings API envelope
+        "401":
+          description: Missing or invalid token
+        "403":
+          description: No profile
+        "503":
+          description: EARNINGS_SERVICE_URL not set
+
+  /api/v1/earnings/shift-logs:
+    get:
+      tags: [BFF Python]
+      summary: List shift logs (proxied)
+      description: Forwards to FastAPI GET /api/v1/shift-logs (query params preserved).
+      operationId: bffEarningsListShiftLogs
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Shift logs list
+        "401":
+          description: Missing or invalid token
+    post:
+      tags: [BFF Python]
+      summary: Create shift log (proxied)
+      description: Forwards to FastAPI POST /api/v1/shift-logs (JSON body stream).
+      operationId: bffEarningsCreateShiftLog
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Created
+        "401":
+          description: Missing or invalid token
+
+  /api/v1/earnings/shift-logs/import-csv:
+    post:
+      tags: [BFF Python]
+      summary: Import shift logs CSV (proxied)
+      description: Forwards multipart body to FastAPI POST /api/v1/shift-logs/import-csv.
+      operationId: bffEarningsImportCsv
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: Import summary
+        "401":
+          description: Missing or invalid token
+
+  /api/v1/earnings/shift-logs/{shiftLogId}:
+    get:
+      tags: [BFF Python]
+      summary: Get shift log (proxied)
+      operationId: bffEarningsGetShiftLog
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: shiftLogId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Shift log
+        "401":
+          description: Missing or invalid token
+
+  /api/v1/earnings/shift-logs/{shiftLogId}/verification:
+    patch:
+      tags: [BFF Python]
+      summary: Verifier update status (proxied)
+      operationId: bffEarningsVerification
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: shiftLogId
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        "200":
+          description: Updated
+        "401":
+          description: Missing or invalid token
+
+  /api/v1/anomaly/status:
+    get:
+      tags: [BFF Python]
+      summary: Anomaly service status (proxied)
+      description: Forwards to FastAPI GET /api/v1/status.
+      operationId: bffAnomalyStatus
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Anomaly API envelope
+        "401":
+          description: Missing or invalid token
+        "503":
+          description: ANOMALY_SERVICE_URL not set
+
   /api/grievances:
     get:
       tags: [Grievances]
       summary: List grievances
       operationId: listGrievances
+      security:
+        - bearerAuth: []
       parameters:
         - in: query
           name: worker_id
+          description: Verifier/advocate only; ignored for workers (always scoped to caller).
           schema:
             type: string
         - in: query
@@ -246,6 +392,10 @@ paths:
             type: integer
             default: 0
       responses:
+        "401":
+          description: Missing or invalid token
+        "403":
+          description: No profile
         "200":
           description: Grievances list
           content:
@@ -256,16 +406,19 @@ paths:
       tags: [Grievances]
       summary: Create grievance
       operationId: createGrievance
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
-              required: [worker_id, platform, category, description]
+              required: [platform, category, description]
               properties:
                 worker_id:
                   type: string
+                  description: Required for verifier/advocate; ignored for workers (uses JWT subject).
                 platform:
                   type: string
                 category:
@@ -282,6 +435,10 @@ paths:
                       items:
                         type: string
       responses:
+        "401":
+          description: Missing or invalid token
+        "403":
+          description: No profile or worker cannot set worker_id for others
         "201":
           description: Grievance created
           content:
@@ -300,7 +457,15 @@ paths:
       tags: [Grievances]
       summary: Get grievance by id
       operationId: getGrievanceById
+      security:
+        - bearerAuth: []
       responses:
+        "401":
+          description: Missing or invalid token
+        "403":
+          description: No profile
+        "404":
+          description: Not found or not visible to this role
         "200":
           description: Grievance record
           content:
@@ -311,6 +476,8 @@ paths:
       tags: [Grievances]
       summary: Update grievance
       operationId: updateGrievance
+      security:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -334,6 +501,12 @@ paths:
                       items:
                         type: string
       responses:
+        "401":
+          description: Missing or invalid token
+        "403":
+          description: No profile
+        "404":
+          description: Not found or not owned
         "200":
           description: Updated grievance
           content:
@@ -344,7 +517,15 @@ paths:
       tags: [Grievances]
       summary: Delete grievance
       operationId: deleteGrievance
+      security:
+        - bearerAuth: []
       responses:
+        "401":
+          description: Missing or invalid token
+        "403":
+          description: No profile
+        "404":
+          description: Not found or not owned
         "200":
           description: Delete confirmation
           content:
@@ -357,6 +538,8 @@ paths:
       tags: [Grievances]
       summary: Add tags to grievance
       operationId: addGrievanceTags
+      security:
+        - bearerAuth: []
       parameters:
         - in: path
           name: id
@@ -378,6 +561,12 @@ paths:
                       items:
                         type: string
       responses:
+        "401":
+          description: Missing or invalid token
+        "403":
+          description: No profile
+        "404":
+          description: Not found or not owned
         "200":
           description: Updated grievance with merged tags
           content:
@@ -389,7 +578,10 @@ paths:
     get:
       tags: [Analytics]
       summary: Benchmark pay for platform and city
+      description: Workers may only use city_zone matching their profile.
       operationId: getPlatformCityBenchmark
+      security:
+        - bearerAuth: []
       parameters:
         - in: query
           name: platform
@@ -402,6 +594,10 @@ paths:
           schema:
             type: string
       responses:
+        "401":
+          description: Missing or invalid token
+        "403":
+          description: No profile or worker city mismatch
         "200":
           description: Benchmark payload
           content:
@@ -413,7 +609,10 @@ paths:
     get:
       tags: [Analytics]
       summary: Workers with month-on-month income drop
+      description: Verifier or advocate role only.
       operationId: getVulnerabilityFlags
+      security:
+        - bearerAuth: []
       parameters:
         - in: query
           name: threshold
@@ -421,6 +620,10 @@ paths:
             type: number
             default: 20
       responses:
+        "401":
+          description: Missing or invalid token
+        "403":
+          description: Wrong role (worker not allowed)
         "200":
           description: Vulnerability flags list
           content:
@@ -432,7 +635,10 @@ paths:
     get:
       tags: [Certificates]
       summary: Verified logs for worker certificate
+      description: Workers may only use their own workerId path parameter.
       operationId: getWorkerCertificateLogs
+      security:
+        - bearerAuth: []
       parameters:
         - in: path
           name: workerId
@@ -450,6 +656,10 @@ paths:
             type: string
             format: date
       responses:
+        "401":
+          description: Missing or invalid token
+        "403":
+          description: No profile or cannot access another worker
         "200":
           description: Worker verified logs
           content:

@@ -7,6 +7,8 @@ import {
   roundTo,
   success,
 } from "../lib/http.js";
+import { requireRole } from "../middleware/auth.js";
+import { isStaff } from "../middleware/authorization.js";
 import { getSupabaseClient } from "../lib/supabase.js";
 
 const router = express.Router();
@@ -23,6 +25,16 @@ router.get(
 
     if (!platform || !cityZone) {
       throw new HttpError(400, "Query params platform and city_zone are required.");
+    }
+
+    if (!isStaff(req.profile)) {
+      const mine = String(req.profile.city_zone || "").trim();
+      if (!mine || mine !== cityZone) {
+        throw new HttpError(
+          403,
+          "Workers can only request benchmarks for their own city_zone."
+        );
+      }
     }
 
     const { data: profiles, error: profileError } = await supabase
@@ -92,6 +104,7 @@ router.get(
 
 router.get(
   "/vulnerability-flags",
+  requireRole("verifier", "advocate"),
   asyncHandler(async (req, res) => {
     const supabase = getSupabaseClient();
 
