@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import {
   AlertTriangle,
+  BarChart3,
   ClipboardCheck,
+  FileCheck2,
   Home,
   LayoutDashboard,
   Menu,
@@ -42,6 +44,17 @@ function LogoCompact() {
 /** Baseline nav for all roles; tighten per-role later. */
 function useNavItems() {
   const role = useAuthStore((s) => s.profile?.role)
+
+  if (role === 'worker') {
+    return [
+      { to: '/worker', label: 'Dashboard', end: true, icon: LayoutDashboard },
+      { to: '/worker/shifts', label: 'Shifts', end: true, icon: ClipboardCheck },
+      { to: '/worker/grievances', label: 'Grievances', end: true, icon: AlertTriangle },
+      { to: '/worker/certificate', label: 'Certificate', end: true, icon: FileCheck2 },
+      { to: '/worker/benchmark', label: 'Benchmark', end: true, icon: BarChart3 },
+      { to: '/community', label: 'Community', end: false, icon: MessageCircle },
+    ]
+  }
 
   if (role === 'verifier') {
     return [
