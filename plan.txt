@@ -6,6 +6,8 @@ Repo Structure: One repo with 4 folders: /frontend, /service-earnings-python, /s
 
 The Shared DB: Decide on a single PostgreSQL or MySQL database. Person 1 sets it up, but Person 2 writes the script to fill it with fake data.
 
+Supabase: Organization name in the dashboard is "zadif"; project is FairGig (ref cylloibqpsqqcesmsigg). Keys and URL live under Project Settings → API.
+
 Person 1: The Core Engine & AI (Python/FastAPI)
 
 Branch: backend-python-core
