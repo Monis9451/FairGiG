@@ -3,12 +3,13 @@ import { motion } from 'framer-motion'
 import { useCommunityFeed } from '@/hooks/useCommunity'
 import { CommunityPostCard } from '@/components/community/CommunityPostCard'
 import { CommunityPostEngagement } from '@/components/community/CommunityPostEngagement'
+import { CommunityComposerInline } from '@/components/community/CommunityComposerInline'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { fieldContainerVariant, fieldVariant } from '@/components/auth/AuthSplitCard'
 
-export function CommunityFeedPanel({ role, onOpenComposer }) {
+export function CommunityFeedPanel({ role }) {
   const [searchInput, setSearchInput] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [category, setCategory] = useState('')
@@ -27,10 +28,10 @@ export function CommunityFeedPanel({ role, onOpenComposer }) {
 
   const items = feed.data?.pages.flatMap((p) => p.items) ?? []
   const total = feed.data?.pages[0]?.pagination?.total
-  const showWorkerCta = role === 'worker' && typeof onOpenComposer === 'function'
-
   return (
     <div className="space-y-4">
+      {role === 'worker' ? <CommunityComposerInline /> : null}
+
       <motion.div
         variants={fieldContainerVariant}
         initial="hidden"
@@ -65,18 +66,6 @@ export function CommunityFeedPanel({ role, onOpenComposer }) {
               placeholder="Filter"
             />
           </motion.div>
-          {showWorkerCta ? (
-            <motion.div variants={fieldVariant} className="sm:ml-auto">
-              <Label className="invisible hidden sm:block">.</Label>
-              <Button
-                type="button"
-                onClick={onOpenComposer}
-                className="h-10 w-full rounded-full border-2 border-brand-primary bg-brand-primary px-6 text-xs font-bold uppercase tracking-wider text-brand-light hover:opacity-90 sm:w-auto"
-              >
-                New post
-              </Button>
-            </motion.div>
-          ) : null}
         </div>
         <p className="text-xs text-brand-muted">
           {typeof total === 'number'

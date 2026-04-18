@@ -1,11 +1,11 @@
 import { motion } from 'framer-motion'
 import { useCommunityMine } from '@/hooks/useCommunity'
 import { CommunityPostCard } from '@/components/community/CommunityPostCard'
-import { Button } from '@/components/ui/button'
+import { CommunityComposerInline } from '@/components/community/CommunityComposerInline'
 import { PostStatusBadge } from '@/components/community/PostStatusBadge'
 import { fieldContainerVariant, fieldVariant } from '@/components/auth/AuthSplitCard'
 
-export function CommunityMinePanel({ onOpenComposer }) {
+export function CommunityMinePanel() {
   const mine = useCommunityMine()
 
   if (mine.isLoading) {
@@ -24,17 +24,9 @@ export function CommunityMinePanel({ onOpenComposer }) {
   if (items.length === 0) {
     return (
       <div className="space-y-4">
-        {typeof onOpenComposer === 'function' ? (
-          <Button
-            type="button"
-            onClick={onOpenComposer}
-            className="h-10 w-full rounded-full border-2 border-brand-primary bg-brand-primary text-sm font-bold uppercase tracking-wider text-brand-light hover:opacity-90 sm:w-auto sm:px-8"
-          >
-            New post
-          </Button>
-        ) : null}
+        <CommunityComposerInline />
         <p className="rounded-2xl border border-dashed border-brand-muted bg-white p-8 text-center text-sm text-brand-muted">
-          You have not submitted any community posts yet. Create one with <strong>New post</strong>.
+          You have not submitted any community posts yet. Use the composer above — posts appear here after you submit.
         </p>
       </div>
     )
@@ -42,15 +34,7 @@ export function CommunityMinePanel({ onOpenComposer }) {
 
   return (
     <div className="space-y-4">
-      {typeof onOpenComposer === 'function' ? (
-        <Button
-          type="button"
-          onClick={onOpenComposer}
-          className="h-10 w-full rounded-full border-2 border-brand-primary bg-brand-primary text-sm font-bold uppercase tracking-wider text-brand-light hover:opacity-90 sm:w-auto sm:px-8"
-        >
-          New post
-        </Button>
-      ) : null}
+      <CommunityComposerInline />
     <motion.ul
       variants={fieldContainerVariant}
       initial="hidden"

@@ -4,13 +4,11 @@ import { DashboardHeader } from '@/components/layout/DashboardHeader'
 import { CommunityFeedPanel } from '@/components/community/CommunityFeedPanel'
 import { CommunityMinePanel } from '@/components/community/CommunityMinePanel'
 import { CommunityModerationPanel } from '@/components/community/CommunityModerationPanel'
-import { CommunityComposerModal } from '@/components/community/CommunityComposerModal'
 import { cn } from '@/lib/utils'
 
 export default function CommunityPage() {
   const role = useAuthStore((s) => s.profile?.role)
   const [tab, setTab] = useState('feed')
-  const [composerOpen, setComposerOpen] = useState(false)
 
   const backHref = role === 'analyst' ? '/analyst' : `/${role}`
 
@@ -61,15 +59,9 @@ export default function CommunityPage() {
           </div>
         ) : null}
 
-        {tab === 'feed' ? (
-          <CommunityFeedPanel role={role} onOpenComposer={() => setComposerOpen(true)} />
-        ) : null}
-        {tab === 'mine' && role === 'worker' ? (
-          <CommunityMinePanel onOpenComposer={() => setComposerOpen(true)} />
-        ) : null}
+        {tab === 'feed' ? <CommunityFeedPanel role={role} /> : null}
+        {tab === 'mine' && role === 'worker' ? <CommunityMinePanel /> : null}
         {tab === 'moderate' && role === 'advocate' ? <CommunityModerationPanel /> : null}
-
-        <CommunityComposerModal open={composerOpen} onClose={() => setComposerOpen(false)} />
       </main>
     </div>
   )
