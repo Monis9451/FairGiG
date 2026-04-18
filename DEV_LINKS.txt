@@ -19,7 +19,7 @@ Useful dashboard pages:
 
 Repo SQL (paste into SQL editor as needed):
 - database/on_auth_user_create_profile.sql — auto-create profile on sign-up
-- database/seed_auth_users.sql — dev users (worker / verifier / advocate) + auth + profiles; password in file header
+- database/seed_auth_users.sql — 25 dev users (20 workers, 3 verifiers, 2 advocates) seed.*@fairgig.dev + auth + profiles; password in file header
 
 Tables in schema "public" (from Supabase; RLS enabled on all)
 --------------------------------------------------------------
