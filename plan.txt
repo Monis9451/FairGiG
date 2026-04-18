@@ -1,114 +1,149 @@
 This is the "War Plan." To work in parallel without blocking each other, you must treat your roles like separate companies that trade data via APIs.
 
-The Setup (Do this in the first 30 mins)
+================================================================================
+UPDATED — HOW THE REPO WORKS NOW (for merge + frontend)
+================================================================================
 
-Repo Structure: One repo with 4 folders: /frontend, /service-earnings-python, /service-anomaly-python, /service-grievance-node (Node).
+Repo folders: /frontend, /service-earnings-python, /service-anomaly-python,
+/service-grievance-node (Node BFF).
 
-The Shared DB: Decide on a single PostgreSQL or MySQL database. Person 1 sets it up, but Person 2 writes the script to fill it with fake data.
+Database: Supabase Postgres (org "zadif", project FairGig, ref cylloibqpsqqcesmsigg).
+Keys: Dashboard → Project Settings → API.
 
-Supabase: Organization name in the dashboard is "zadif"; project is FairGig (ref cylloibqpsqqcesmsigg). Keys and URL live under Project Settings → API.
+Single API for the browser: Person 3 should call ONLY the Node service
+(see DEV_LINKS.txt). Node proxies /api/v1/earnings/* and /api/v1/anomaly/* to
+Python. Use one base URL + Authorization: Bearer <access_token> everywhere.
 
-Person 1: The Core Engine & AI (Python/FastAPI)
+Auth + roles: Signup/login live on Node (POST /api/v1/auth/signup|login). JWT is
+Supabase. App roles (worker | verifier | advocate) are on public.profiles.role
+(returned on login and on GET /api/v1/me). Person 1 Python validates the same
+Bearer + profile role for earnings/anomaly.
 
-Branch: backend-python-core
-User Personas: Gig Worker (Logging), Verifier (Approving)
+================================================================================
+Person 1 — Python / FastAPI (Earnings + Anomaly)
+================================================================================
 
-Core Functionalities Assigned:
+Branch idea: backend-python-core
 
-Auth Service: Create JWT login/signup. Assign roles: WORKER, VERIFIER, ADVOCATE.
+User personas you support in APIs:
+  • Worker — create shift logs, CSV import, list/get own logs; run anomaly on self.
+  • Verifier — PATCH shift log to verified/flagged (earnings only).
 
-Earnings Service (FastAPI):
+What you own:
+  • service-earnings-python (port 8000 local): shift logs, CSV import, verification.
+  • service-anomaly-python (port 8001 local): POST /api/v1/analyze (z-score + % drop;
+    history from DB or payload).
 
-Create the "Shift Log" API (Date, Platform, Gross, Deductions).
+What you should SEE when testing:
+  • FastAPI docs: http://localhost:8000/docs and http://localhost:8001/docs
+  • Or through BFF: http://localhost:5000/api/v1/earnings/status and
+    .../anomaly/status (with Bearer token).
 
-CSV Import: Write a function that takes a CSV file and saves 10+ rows to the DB at once.
+What you PERFORM:
+  • Keep .env filled (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY).
+  • Document any new path under /api/v1/ for Node BFF (same path after /api/v1/earnings
+    or /api/v1/anomaly on Node).
 
-Verification Status: Create an endpoint for the Verifier persona to change a log status from pending to verified or flagged.
+You do NOT own: browser auth UI, grievances UI, Node routes (except your Python code).
 
-Anomaly Service (FastAPI):
+================================================================================
+Person 2 — Node BFF + "big picture" data (Grievances, analytics, certificates)
+================================================================================
 
-Build the /analyze endpoint using Isolation Forest (or Z-score logic).
+Branch idea: backend-node-analytics
 
-Input: Current shift data + History.
+User personas you support:
+  • Worker — own grievances, own city benchmark, own certificate workerId.
+  • Verifier — wider grievances; vulnerability-flags API; verifier ping.
+  • Advocate — same wide access as verifier where coded.
 
-Output: is_anomaly: true + explanation: "Your earnings are 30% lower than usual."
+What you own:
+  • service-grievance-node: auth, /me, grievances CRUD, analytics (benchmark +
+    vulnerability flags), verified-logs certificate JSON, proxy to Python.
+  • Scripts: seedVerifiedEarnings.js, database/*.sql seeds.
 
-Why you don't have to wait: You can build your APIs and test them using Postman. You don't need the UI or the Node.js service to finish your Python logic.
+What you should SEE:
+  • Swagger: http://localhost:5000/api-docs
+  • OpenAPI file: service-grievance-node/docs/openapi.yaml
 
-Person 2: The Data Scientist & Community Lead (Node.js + Python)
+What you PERFORM:
+  • CORS_ORIGIN includes Person 3's frontend URL when deployed.
+  • EARNINGS_SERVICE_URL + ANOMALY_SERVICE_URL point to deployed Python (or localhost).
 
-Branch: backend-node-analytics
-User Personas: Advocate/Analyst (Trends), Worker Community (Grievances)
+================================================================================
+Person 3 — Frontend (React / Vite) — READ THIS TO UNBLOCK
+================================================================================
 
-Core Functionalities Assigned:
+Branch idea: frontend-ui
 
-Grievance Service (Node.js):
+Environment:
+  • Copy frontend/.env.example → frontend/.env
+  • VITE_API_BASE_URL=http://localhost:5000   (dev)
+  • In production: VITE_API_BASE_URL=https://<your-deployed-node-host>
 
-Mandatory Requirement: You must use Node.js here.
+Auth flow (do this first in the app):
+  1) POST ${VITE_API_BASE_URL}/api/v1/auth/login
+     Body: { "email", "password" }
+     Response: data.session.access_token, data.profile.role, data.user
+  2) Store access_token (memory + sessionStorage is OK for demo; production may differ).
+  3) Every API call: headers: { Authorization: `Bearer ${access_token}` }
 
-Build the CRUD for the "Grievance Board." Workers post complaints; Advocates can "tag" them (e.g., #Underpaid, #Banned).
+Role-based routing (read data.profile.role after login):
+  • worker
+  • verifier
+  • advocate
 
-Analytics Service:
+What each role should SEE and DO in the UI (map to APIs):
 
-The "Median" Logic: Write an API that looks at all workers in the DB and calculates the average pay for "Uber" in "Lahore."
+--- WORKER ---
+  SEE: Own shift logs, own certificate, city benchmark for own city_zone, grievance list (own).
+  DO:
+    • Log shift — POST .../api/v1/earnings/shift-logs  (body: current_shift fields per OpenAPI/Python model)
+    • CSV import — POST .../api/v1/earnings/shift-logs/import-csv  (multipart file)
+    • Anomaly check — POST .../api/v1/anomaly/analyze  (current_shift + optional history)
+    • My pay vs median — GET .../api/analytics/benchmarks/platform-city?platform=...&city_zone=...
+      (city_zone must match profile.city_zone)
+    • Certificate — GET .../api/certificates/workers/<your-user-id>/verified-logs
+      (workerId must be your auth user id)
+    • Grievances — GET/POST .../api/grievances  (POST body worker_id ignored; server uses JWT)
 
-Vulnerability Flag: Create a query that finds any worker whose income dropped >20% month-on-month.
+--- VERIFIER ---
+  SEE: Pending shift logs (use earnings list with status=pending or filter in UI), grievances broadly.
+  DO:
+    • List logs — GET .../api/v1/earnings/shift-logs?worker_id=...&status=pending  (optional filters)
+    • Approve/flag — PATCH .../api/v1/earnings/shift-logs/{id}/verification
+    • Vulnerability dashboard — GET .../api/analytics/vulnerability-flags?threshold=20
+    • Optional sanity check — GET .../api/v1/verifier/ping
 
-The "Seeder" Script:
+--- ADVOCATE ---
+  SEE: Same wide analytics as verifier; grievances across workers.
+  DO:
+    • GET .../api/analytics/vulnerability-flags
+    • GET .../api/grievances  (optional query worker_id, filters)
+    • Benchmarks for any city — GET .../api/analytics/benchmarks/platform-city?...  (no worker city lock)
+    • Certificates for any worker — GET .../api/certificates/workers/{workerId}/verified-logs
 
-Crucial for Judging: Write a script to insert 1,000 fake "verified" earnings into the DB. Without this, Person 3 cannot show any pretty charts, and Person 1's AI won't have "history" to look at.
+Mock data: Optional for layout-only screens. For demo with judges, prefer real API
+calls above once Node + Supabase are up.
 
-Certificate JSON: Create a clean API that fetches all verified logs for a specific worker so the frontend can print them.
+Full API detail: service-grievance-node/docs/openapi.yaml + Python /docs for
+earnings/anomaly request bodies.
 
-Why you don't have to wait: You are working in Node.js while the others are in Python/React. Your primary job is the "Big Picture" data.
+================================================================================
+Legacy reference — original parallel plan (still useful)
+================================================================================
 
-Person 3: The Frontend & UX Architect (React)
+Person 1 originally: Earnings + Anomaly APIs (shift log, CSV, verification, analyze).
+Person 2 originally: Grievance board, median benchmark, vulnerability query, seeder,
+certificate API.
+Person 3 originally: Three home views (worker / verifier / advocate), Recharts,
+printable certificate page.
 
-Branch: frontend-ui
-User Personas: All three (The face of the app)
+Merge checklist:
+  • Deploy or run: Python 8000/8001, Node 5000.
+  • Person 3: VITE_API_BASE_URL → Node only.
+  • Run seeder if charts/anomaly need data: service-grievance-node npm run seed:verified-earnings
+  • Fix CORS if frontend origin not in Node CORS_ORIGIN.
 
-Core Functionalities Assigned:
-
-Role-Based Routing: Create three distinct "Home" views:
-
-Worker: Form to log shifts, a big "Download Certificate" button, and a chart (My Pay vs. City Median).
-
-Verifier: A simple dashboard showing a list of pending logs and uploaded screenshots.
-
-Advocate: A dashboard with high-level charts (e.g., "FoodPanda commission trend in May").
-
-Data Visualization: Use Recharts to build the graphs.
-
-Income Certificate (The "Winning" Feature):
-
-Create a clean, printable HTML page.
-
-Use CSS @media print { ... } to hide the sidebar/header when printing so it looks like a real bank document.
-
-Mock Integration:
-
-Parallel Secret: Since the backends aren't done, create a const mockData = [...] for every page. Build the entire UI using this fake data. In the last 4 hours, you will replace mockData with axios.get().
-
-Why you don't have to wait: By using mockData, you can finish the entire UI before your friends even finish their first API.
-
-Mapping to the Architecture Requirements
-Requirement	Assigned To	Tech
-Anomaly Service	Person 1	Python FastAPI
-Earnings Service	Person 1	Python FastAPI
-Grievance Service	Person 2	Node.js
-Analytics Panel	Person 2 (Data) + Person 3 (UI)	SQL + React
-Income Certificate	Person 3 (UI) + Person 2 (Data)	HTML/CSS
-Database Choice	All (Led by Person 1)	Postgres/MySQL
-How to Merge (The "Happy Hour")
-
-Hour 20: Person 1 and Person 2 deploy their services (or run them on specific ports like 8000 and 5000).
-
-Hour 21: Person 3 changes the baseURL in their React code to point to the real APIs.
-
-Hour 22: Run the Seeder Script (Person 2) to make the app look alive.
-
-Hour 23: Fix any "CORS" errors (Common hackathon bug).
-
-Hour 24: Submit.
-
-Full Depth Tip: Person 1, make sure your Anomaly Service is documented. The judges said: "judges will call it directly with a crafted payload." This means your API must be public and easy to test for them.
+Judges tip: Anomaly can be tested via BFF POST .../api/v1/anomaly/analyze with Bearer
+and a crafted JSON body; earnings via .../api/v1/earnings/*.
