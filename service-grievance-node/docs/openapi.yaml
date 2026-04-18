@@ -18,7 +18,7 @@ tags:
   - name: Documentation
     description: OpenAPI document routes
   - name: Auth
-    description: JWT (Supabase access token) + profiles
+    description: Signup/login (anon key), JWT (Supabase access token) for /me, profiles
   - name: Grievances
     description: Grievance board CRUD and tagging
   - name: Analytics
@@ -127,6 +127,82 @@ paths:
           description: Invalid token
         "403":
           description: Wrong role or no profile
+
+  /api/v1/auth/signup:
+    post:
+      tags: [Auth]
+      summary: Register with email and password
+      description: |
+        Creates a Supabase Auth user. Profile rows are created by DB trigger (`worker` role only).
+        If email confirmation is enabled, `session` may be null until the user confirms.
+        Response includes `profile` (with `role`) when the server can read `public.profiles` (requires `SUPABASE_SERVICE_ROLE_KEY` on the API).
+      operationId: postAuthSignup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+                full_name:
+                  type: string
+                  description: Stored in user metadata; copied to profiles by trigger when present.
+                city_zone:
+                  type: string
+      responses:
+        "201":
+          description: User created (session may be null if confirmation required)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeAuthSession"
+        "400":
+          description: Validation or Supabase signup error
+        "503":
+          description: Server missing SUPABASE_ANON_KEY
+
+  /api/v1/auth/login:
+    post:
+      tags: [Auth]
+      summary: Sign in with email and password
+      description: |
+        Returns a Supabase session and `profile` (including `role`) for the frontend when profile lookup is available.
+        Use `access_token` as `Authorization: Bearer` for `/api/v1/me`.
+      operationId: postAuthLogin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+      responses:
+        "200":
+          description: Session issued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeAuthSession"
+        "400":
+          description: Bad request
+        "401":
+          description: Invalid credentials, unconfirmed email, or no session
+        "503":
+          description: Server missing SUPABASE_ANON_KEY
 
   /api/grievances:
     get:
@@ -656,6 +732,75 @@ components:
                   nullable: true
             profile:
               nullable: true
+              type: object
+              properties:
+                id:
+                  type: string
+                  format: uuid
+                full_name:
+                  type: string
+                  nullable: true
+                role:
+                  type: string
+                  enum: [worker, verifier, advocate]
+                city_zone:
+                  type: string
+                  nullable: true
+                created_at:
+                  type: string
+                  format: date-time
+        error:
+          nullable: true
+
+    AuthSession:
+      type: object
+      nullable: true
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+        expires_in:
+          type: integer
+        expires_at:
+          type: integer
+        token_type:
+          type: string
+
+    AuthUserBrief:
+      type: object
+      nullable: true
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        email_confirmed_at:
+          type: string
+          nullable: true
+          format: date-time
+
+    EnvelopeAuthSession:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            session:
+              $ref: "#/components/schemas/AuthSession"
+            user:
+              $ref: "#/components/schemas/AuthUserBrief"
+            profile:
+              nullable: true
+              description: From public.profiles; null if row missing or service role not configured on API
               type: object
               properties:
                 id:

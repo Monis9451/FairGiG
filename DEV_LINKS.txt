@@ -50,9 +50,11 @@ Node (service-grievance-node), default PORT=5000:
 - Root JSON:        http://localhost:5000/
 - Health:           http://localhost:5000/health
 - Downstream probe: http://localhost:5000/services/health
-- Auth (Bearer = Supabase user access_token after sign-in):
-  - GET http://localhost:5000/api/v1/me
-  - GET http://localhost:5000/api/v1/verifier/ping  (role: verifier only)
+- Auth:
+  - POST http://localhost:5000/api/v1/auth/signup   (email/password; optional full_name, city_zone)
+  - POST http://localhost:5000/api/v1/auth/login    (returns session; use access_token as Bearer)
+  - GET http://localhost:5000/api/v1/me             (Bearer = Supabase user access_token)
+  - GET http://localhost:5000/api/v1/verifier/ping  (role: verifier only; requires Bearer)
 - Swagger UI:       http://localhost:5000/api-docs
 - OpenAPI file:     `service-grievance-node/docs/openapi.yaml` (also served at `/openapi.yaml` and `/openapi.json`)
 - Node API examples: `/api/grievances`, `/api/analytics/...`, `/api/certificates/...` (see Swagger)

@@ -15,6 +15,7 @@ import { env } from "./src/config/env.js";
 import grievanceRoutes from "./src/routes/grievances.js";
 import analyticsRoutes from "./src/routes/analytics.js";
 import certificateRoutes from "./src/routes/certificates.js";
+import authRoutes from "./src/routes/auth.js";
 
 const require = createRequire(import.meta.url);
 const swaggerUi = require("swagger-ui-express");
@@ -258,6 +259,8 @@ app.get(
     });
   }
 );
+
+app.use("/api/v1/auth", authRoutes);
 
 app.use("/api/grievances", grievanceRoutes);
 app.use("/api/analytics", analyticsRoutes);
