@@ -16,7 +16,7 @@ export default function CommunityPage() {
         { id: 'mine', label: 'My posts' },
       ]
     }
-    if (role === 'advocate') {
+    if (role === 'advocate' || role === 'analyst') {
       return [
         { id: 'feed', label: 'Feed' },
         { id: 'moderate', label: 'Moderate' },
@@ -62,7 +62,9 @@ export default function CommunityPage() {
 
         {tab === 'feed' ? <CommunityFeedPanel role={role} /> : null}
         {tab === 'mine' && role === 'worker' ? <CommunityMinePanel /> : null}
-        {tab === 'moderate' && role === 'advocate' ? <CommunityModerationPanel /> : null}
+        {tab === 'moderate' && (role === 'advocate' || role === 'analyst') ? (
+          <CommunityModerationPanel />
+        ) : null}
       </main>
     </div>
   )

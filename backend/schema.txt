@@ -4,7 +4,7 @@ id: (UUID) Primary Key
 
 full_name: (Text) Name of Ali or other users
 
-role: (Text) 'worker', 'verifier', or 'advocate'
+role: (Text) 'worker', 'verifier', 'advocate', or 'analyst' (advocate and analyst share app permissions)
 
 city_zone: (Text) e.g., 'Faisal Town', 'Gulberg'
 
@@ -30,7 +30,7 @@ net_received: (Number) Final amount paid
 
 screenshot_url: (Text) URL of uploaded proof
 
-status: (Text) 'pending', 'verified', or 'flagged'
+status: (Text) 'pending', 'verified', 'flagged', or 'unverifiable'
 
 anomaly_explanation: (Text) Reason from AI/FastAPI
 

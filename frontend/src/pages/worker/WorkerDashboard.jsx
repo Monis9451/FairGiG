@@ -115,6 +115,10 @@ const badgeClassByStatus = (status) => {
     return 'border-brand-dark bg-brand-dark text-brand-light'
   }
 
+  if (status === 'unverifiable') {
+    return 'border-amber-500/60 bg-amber-100 text-amber-950'
+  }
+
   return 'border-brand-muted/50 bg-brand-light text-brand-darkest'
 }
 
@@ -478,12 +482,14 @@ const WorkerDashboard = () => {
     const verified = shiftItems.filter((item) => item.status === 'verified').length
     const pending = shiftItems.filter((item) => item.status === 'pending').length
     const flagged = shiftItems.filter((item) => item.status === 'flagged').length
+    const unverifiable = shiftItems.filter((item) => item.status === 'unverifiable').length
 
+    const forAvg = shiftItems.filter((item) => item.status !== 'unverifiable')
     const averageHourly =
-      total > 0
-        ? shiftItems
+      forAvg.length > 0
+        ? forAvg
             .map((item) => formatHourlyRate(item.net_received, item.hours_worked))
-            .reduce((sum, value) => sum + value, 0) / total
+            .reduce((sum, value) => sum + value, 0) / forAvg.length
         : 0
 
     return {
@@ -491,6 +497,7 @@ const WorkerDashboard = () => {
       verified,
       pending,
       flagged,
+      unverifiable,
       averageHourly: Number(averageHourly.toFixed(2)),
     }
   }, [shiftItems])
@@ -692,6 +699,17 @@ const WorkerDashboard = () => {
         <p className="mt-1 max-w-3xl text-sm leading-relaxed text-brand-muted sm:text-base">
           Log shifts, run anomaly checks, track grievances, and access your certificate report.
         </p>
+        {meData?.earnings_verification_summary ? (
+          <p className="mt-2 text-xs text-brand-muted sm:text-sm">
+            Verification summary (all your shift logs): {meData.earnings_verification_summary.pending} pending,{' '}
+            {meData.earnings_verification_summary.verified} verified,{' '}
+            {meData.earnings_verification_summary.flagged} flagged,{' '}
+            {meData.earnings_verification_summary.unverifiable} unverifiable
+            {meData.earnings_verification_summary.last_shift_log_at
+              ? ` · last log ${formatDate(meData.earnings_verification_summary.last_shift_log_at)}`
+              : ''}
+          </p>
+        ) : null}
       </header>
       <div className="space-y-6">
         {notice ? (
@@ -706,9 +724,9 @@ const WorkerDashboard = () => {
           </div>
         ) : null}
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
           {shiftLogsQuery.isLoading
-            ? Array.from({ length: 5 }).map((_, index) => (
+            ? Array.from({ length: 6 }).map((_, index) => (
                 <article
                   key={`stats-skeleton-${index}`}
                   className="rounded-lg border border-brand-muted/50 bg-brand-light p-4"
@@ -745,6 +763,13 @@ const WorkerDashboard = () => {
                 >
                   <p className="text-xs uppercase tracking-wide text-brand-muted">Flagged</p>
                   <p className="mt-2 text-2xl font-bold">{stats.flagged}</p>
+                </article>,
+                <article
+                  key="stats-unverifiable"
+                  className="rounded-lg border border-brand-muted/50 bg-brand-light p-4"
+                >
+                  <p className="text-xs uppercase tracking-wide text-brand-muted">Unverifiable</p>
+                  <p className="mt-2 text-2xl font-bold">{stats.unverifiable}</p>
                 </article>,
                 <article
                   key="stats-hourly"

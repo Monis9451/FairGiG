@@ -87,7 +87,7 @@ def _resolve_profile_role(user_id: str) -> str:
         )
 
     role = profile_rows[0].get("role")
-    if role not in {"worker", "verifier", "advocate"}:
+    if role not in {"worker", "verifier", "advocate", "analyst"}:
         raise HTTPException(status_code=403, detail="User role is not valid")
 
     return role

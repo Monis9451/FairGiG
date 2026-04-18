@@ -301,7 +301,7 @@ def update_shift_log_verification(
     if current_status != EarningStatus.pending.value:
         raise HTTPException(
             status_code=409,
-            detail="Only pending logs can be moved to verified or flagged",
+            detail="Only pending logs can be verified, flagged, or marked unverifiable",
         )
 
     update_payload = {

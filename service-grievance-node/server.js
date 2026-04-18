@@ -12,6 +12,8 @@ import YAML from "yaml";
 
 import { attachProfile, requireAuth, requireRole } from "./src/middleware/auth.js";
 import { requireProfile } from "./src/middleware/authorization.js";
+import { asyncHandler, success } from "./src/lib/http.js";
+import { getSupabaseClient } from "./src/lib/supabase.js";
 import { env } from "./src/config/env.js";
 import grievanceRoutes from "./src/routes/grievances.js";
 import analyticsRoutes from "./src/routes/analytics.js";
@@ -246,20 +248,67 @@ app.use(
 );
 
 /** Who am I — use Supabase access token from sign-in (Bearer). */
-app.get("/api/v1/me", requireAuth, attachProfile, (req, res) => {
-  res.status(200).json({
-    success: true,
-    data: {
-      user: {
-        id: req.authUser.id,
-        email: req.authUser.email,
-        phone: req.authUser.phone,
-      },
-      profile: req.profile,
-    },
-    error: null,
-  });
-});
+app.get(
+  "/api/v1/me",
+  requireAuth,
+  attachProfile,
+  asyncHandler(async (req, res) => {
+    let earnings_verification_summary = null;
+
+    if (req.profile?.id) {
+      try {
+        const supabase = getSupabaseClient();
+        const { data, error } = await supabase
+          .from("earnings")
+          .select("status, created_at")
+          .eq("worker_id", req.authUser.id);
+
+        if (!error && Array.isArray(data)) {
+          const counts = {
+            pending: 0,
+            verified: 0,
+            flagged: 0,
+            unverifiable: 0,
+          };
+          let lastMs = 0;
+
+          for (const row of data) {
+            const s = String(row.status || "").toLowerCase();
+            if (s in counts) {
+              counts[s] += 1;
+            }
+            if (row.created_at) {
+              const t = new Date(row.created_at).getTime();
+              if (Number.isFinite(t) && t > lastMs) {
+                lastMs = t;
+              }
+            }
+          }
+
+          earnings_verification_summary = {
+            ...counts,
+            total: data.length,
+            last_shift_log_at: lastMs ? new Date(lastMs).toISOString() : null,
+          };
+        }
+      } catch {
+        earnings_verification_summary = null;
+      }
+    }
+
+    res.status(200).json(
+      success({
+        user: {
+          id: req.authUser.id,
+          email: req.authUser.email,
+          phone: req.authUser.phone,
+        },
+        profile: req.profile,
+        earnings_verification_summary,
+      })
+    );
+  })
+);
 
 
 app.get(

@@ -22,10 +22,10 @@ tags:
     description: Signup/login (anon key), JWT (Supabase access token) for /me, profiles
   - name: Grievances
     description: |
-      Grievance CRUD (JWT). Workers see and edit only their rows; verifier/advocate may filter by any worker_id or manage all.
+      Grievance CRUD (JWT). Workers see and edit only their rows; verifier/advocate/analyst may filter by any worker_id or manage all.
   - name: Analytics
     description: |
-      Benchmarks (JWT). Workers may only query their own city_zone; vulnerability flags are verifier/advocate only.
+      Benchmarks (JWT). Workers may only query their own city_zone; vulnerability flags are verifier/advocate/analyst only.
   - name: Certificates
     description: |
       Verified earnings for a worker (JWT). Workers may only request their own workerId; staff may request any.
@@ -34,7 +34,7 @@ tags:
       Proxied to FastAPI (earnings / anomaly). Same Bearer token as other APIs. Full schemas in Python Swagger (e.g. :8000/docs).
   - name: Community
     description: |
-      Worker bulletin (4th persona): anonymous to peers on the public feed; advocates moderate (pending → visible/hidden/removed).
+      Worker bulletin: anonymous to peers on the public feed; advocates and analysts moderate (pending → visible/hidden/removed).
 
 paths:
   /:
@@ -449,7 +449,7 @@ paths:
       parameters:
         - in: query
           name: worker_id
-          description: Verifier/advocate only; ignored for workers (always scoped to caller).
+          description: Verifier/advocate/analyst only; ignored for workers (always scoped to caller).
           schema:
             type: string
         - in: query
@@ -510,7 +510,7 @@ paths:
               properties:
                 worker_id:
                   type: string
-                  description: Required for verifier/advocate; ignored for workers (uses JWT subject).
+                  description: Required for verifier/advocate/analyst; ignored for workers (uses JWT subject).
                 platform:
                   type: string
                 category:
@@ -701,7 +701,7 @@ paths:
     get:
       tags: [Analytics]
       summary: Workers with month-on-month income drop
-      description: Verifier or advocate role only.
+      description: Verifier, advocate, or analyst role only.
       operationId: getVulnerabilityFlags
       security:
         - bearerAuth: []
@@ -722,6 +722,191 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/EnvelopeVulnerability"
+
+  /api/analytics/commission-trends:
+    get:
+      tags: [Analytics]
+      summary: Platform commission share over time
+      description: |
+        Verifier, advocate, or analyst. Mean `deductions / gross_earned` on **verified** shift logs,
+        grouped by platform and calendar month (platform take-rate proxy).
+      operationId: getCommissionTrends
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: months
+          schema:
+            type: integer
+            default: 12
+            minimum: 1
+            maximum: 36
+      responses:
+        "401":
+          description: Missing or invalid token
+        "403":
+          description: Wrong role
+        "200":
+          description: Time series for charting
+
+  /api/analytics/income-volatility-by-zone:
+    get:
+      tags: [Analytics]
+      summary: Hourly pay dispersion by city zone
+      description: |
+        Verifier, advocate, or analyst. Coefficient of variation of net hourly pay (verified logs)
+        by worker `city_zone` and platform — volatility index.
+      operationId: getIncomeVolatilityByZone
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: lookback_months
+          schema:
+            type: integer
+            default: 24
+        - in: query
+          name: platform
+          schema:
+            type: string
+        - in: query
+          name: min_samples
+          schema:
+            type: integer
+            default: 5
+      responses:
+        "401":
+          description: Missing or invalid token
+        "403":
+          description: Wrong role
+        "200":
+          description: Zone-level volatility metrics
+
+  /api/analytics/grievance-clusters:
+    get:
+      tags: [Analytics]
+      summary: Grievance cluster counts
+      description: |
+        Verifier, advocate, or analyst. Groups grievances by platform, worker city zone, and category.
+        `focus=deactivation` keeps rows whose category, tags, or description suggest deactivation.
+      operationId: getGrievanceClusters
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: focus
+          schema:
+            type: string
+            enum: [deactivation, all]
+            default: deactivation
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 500
+      responses:
+        "401":
+          description: Missing or invalid token
+        "403":
+          description: Wrong role
+        "200":
+          description: Cluster table payload
+
+  /api/analytics/worker/earnings-trends:
+    get:
+      tags: [Analytics]
+      summary: Worker weekly or monthly earnings aggregates
+      description: |
+        **Worker role only.** Buckets by ISO week (Monday start) or calendar month: net, hours,
+        effective hourly, and mean commission share (deductions/gross). Excludes `unverifiable` rows from sums.
+      operationId: getWorkerEarningsTrends
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: granularity
+          schema:
+            type: string
+            enum: [week, month]
+            default: month
+        - in: query
+          name: lookback_months
+          schema:
+            type: integer
+            default: 18
+        - in: query
+          name: platform
+          schema:
+            type: string
+      responses:
+        "401":
+          description: Missing or invalid token
+        "403":
+          description: Not a worker
+        "200":
+          description: Time series for worker dashboard charts
+
+  /api/analytics/grievance-category-window:
+    get:
+      tags: [Analytics]
+      summary: Top grievance categories in a rolling window
+      description: |
+        Verifier, advocate, or analyst. Counts grievances by platform × category where `created_at` is within the last `days`.
+      operationId: getGrievanceCategoryWindow
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: days
+          schema:
+            type: integer
+            default: 7
+            minimum: 1
+            maximum: 90
+      responses:
+        "401":
+          description: Missing or invalid token
+        "403":
+          description: Wrong role
+        "200":
+          description: Category breakdown
+
+  /api/analytics/income-distribution-by-zone:
+    get:
+      tags: [Analytics]
+      summary: Hourly pay percentiles and histogram by zone
+      description: |
+        Verifier, advocate, or analyst. Verified net hourly rates: percentiles and equal-width histogram bins per city_zone × platform.
+      operationId: getIncomeDistributionByZone
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: lookback_months
+          schema:
+            type: integer
+            default: 24
+        - in: query
+          name: platform
+          schema:
+            type: string
+        - in: query
+          name: min_samples
+          schema:
+            type: integer
+            default: 8
+        - in: query
+          name: bins
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "401":
+          description: Missing or invalid token
+        "403":
+          description: Wrong role
+        "200":
+          description: Zone distribution payloads
 
   /api/certificates/workers/{workerId}/verified-logs:
     get:
@@ -820,7 +1005,7 @@ paths:
     post:
       tags: [Community]
       summary: Create community post
-      description: Worker only; status starts pending until advocate approves.
+      description: Worker only; status starts pending until an advocate or analyst approves.
       operationId: createCommunityPost
       security:
         - bearerAuth: []
@@ -857,7 +1042,7 @@ paths:
       tags: [Community]
       summary: Moderation queue
       description: |
-        Advocate only; responses include author_id.
+        Advocate or analyst only; responses include author_id.
         Pagination: `limit` (default 50, max 200), `offset` (max 5000); body includes `pagination.total` and `pagination.returned`.
       operationId: getCommunityModeration
       security:
@@ -882,7 +1067,7 @@ paths:
         "200":
           description: Posts for moderation with pagination
         "403":
-          description: Not an advocate
+          description: Not an advocate or analyst
 
   /api/community/{id}/upvote:
     post:
@@ -1297,13 +1482,32 @@ components:
                   nullable: true
                 role:
                   type: string
-                  enum: [worker, verifier, advocate]
+                  enum: [worker, verifier, advocate, analyst]
                 city_zone:
                   type: string
                   nullable: true
                 created_at:
                   type: string
                   format: date-time
+            earnings_verification_summary:
+              nullable: true
+              description: Worker-only aggregate counts over all shift logs (from earnings table).
+              type: object
+              properties:
+                pending:
+                  type: integer
+                verified:
+                  type: integer
+                flagged:
+                  type: integer
+                unverifiable:
+                  type: integer
+                total:
+                  type: integer
+                last_shift_log_at:
+                  type: string
+                  format: date-time
+                  nullable: true
         error:
           nullable: true
 
@@ -1366,7 +1570,7 @@ components:
                   nullable: true
                 role:
                   type: string
-                  enum: [worker, verifier, advocate]
+                  enum: [worker, verifier, advocate, analyst]
                 city_zone:
                   type: string
                   nullable: true

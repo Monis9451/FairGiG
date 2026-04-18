@@ -36,6 +36,19 @@ export const calculateMedian = (values) => {
   return sorted[mid];
 };
 
+/** Sample standard deviation (n-1); 0 if fewer than 2 values. */
+export const sampleStddev = (values) => {
+  if (!Array.isArray(values) || values.length < 2) {
+    return 0;
+  }
+
+  const mean = values.reduce((total, current) => total + current, 0) / values.length;
+  const variance =
+    values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / (values.length - 1);
+
+  return Math.sqrt(variance);
+};
+
 const dedupeTags = (tags) => {
   const seen = new Set();
   const unique = [];

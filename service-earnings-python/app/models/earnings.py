@@ -12,11 +12,13 @@ class EarningStatus(str, Enum):
     pending = "pending"
     verified = "verified"
     flagged = "flagged"
+    unverifiable = "unverifiable"
 
 
 class VerificationStatus(str, Enum):
     verified = "verified"
     flagged = "flagged"
+    unverifiable = "unverifiable"
 
 
 def _round_money(value: float) -> float:
@@ -63,10 +65,12 @@ class ShiftLogVerificationRequest(BaseModel):
 
     @model_validator(mode="after")
     def validate_flag_reason(self) -> ShiftLogVerificationRequest:
-        if self.status == VerificationStatus.flagged:
+        if self.status in (VerificationStatus.flagged, VerificationStatus.unverifiable):
             explanation = (self.anomaly_explanation or "").strip()
             if not explanation:
-                raise ValueError("anomaly_explanation is required when status is flagged")
+                raise ValueError(
+                    "anomaly_explanation is required when status is flagged or unverifiable"
+                )
             self.anomaly_explanation = explanation
         elif self.anomaly_explanation is not None:
             self.anomaly_explanation = self.anomaly_explanation.strip() or None

@@ -1,6 +1,7 @@
 import express from "express";
 
 import { requireRole } from "../middleware/auth.js";
+import { isCommunityModerator } from "../middleware/authorization.js";
 import {
   HttpError,
   asyncHandler,
@@ -260,7 +261,7 @@ router.post(
 /** Advocate queue: all posts with author_id for moderation. */
 router.get(
   "/moderation",
-  requireRole("advocate"),
+  requireRole("advocate", "analyst"),
   asyncHandler(async (req, res) => {
     const supabase = getSupabaseClient();
     const statusFilter = String(req.query.status || "").trim().toLowerCase();
@@ -503,7 +504,7 @@ router.patch(
       throw new HttpError(404, "Post not found.");
     }
 
-    if (role === "advocate") {
+    if (isCommunityModerator(req.profile)) {
       const updates = {};
       if (req.body.status !== undefined) {
         updates.status = validateModerationStatus(req.body.status);
