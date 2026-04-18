@@ -3,6 +3,7 @@ import {
   Activity,
   AlertTriangle,
   ArrowRight,
+  Ban,
   CheckCircle2,
   ClipboardList,
   RefreshCw,
@@ -28,12 +29,14 @@ const VerifierOverviewPage = () => {
   const pendingQuery = useVerifierShiftLogsQuery({ status: 'pending', limit: 50, offset: 0 })
   const verifiedQuery = useVerifierShiftLogsQuery({ status: 'verified', limit: 50, offset: 0 })
   const flaggedQuery = useVerifierShiftLogsQuery({ status: 'flagged', limit: 50, offset: 0 })
+  const unverifiableQuery = useVerifierShiftLogsQuery({ status: 'unverifiable', limit: 50, offset: 0 })
   const vulnerabilityQuery = useVerifierVulnerabilityFlagsQuery(20)
   const grievancesQuery = useVerifierGrievancesQuery({ status: 'open', limit: 20, offset: 0 })
 
   const pendingItems = pendingQuery.data?.items ?? []
   const verifiedItems = verifiedQuery.data?.items ?? []
   const flaggedItems = flaggedQuery.data?.items ?? []
+  const unverifiableItems = unverifiableQuery.data?.items ?? []
   const vulnerabilityWorkers = vulnerabilityQuery.data?.workers ?? []
   const grievanceItems = grievancesQuery.data?.items ?? []
 
@@ -58,6 +61,12 @@ const VerifierOverviewPage = () => {
         tone: 'from-brand-dark/30 to-brand-dark/5',
       },
       {
+        label: 'Unverifiable Logs',
+        value: unverifiableItems.length,
+        icon: Ban,
+        tone: 'from-amber-200/80 to-amber-50/40',
+      },
+      {
         label: 'Vulnerability Flags',
         value: vulnerabilityWorkers.length,
         icon: ShieldAlert,
@@ -75,6 +84,7 @@ const VerifierOverviewPage = () => {
       pendingItems.length,
       pingQuery.isError,
       pingQuery.isLoading,
+      unverifiableItems.length,
       verifiedItems.length,
       vulnerabilityWorkers.length,
     ]
@@ -84,6 +94,7 @@ const VerifierOverviewPage = () => {
     pendingQuery.isLoading ||
     verifiedQuery.isLoading ||
     flaggedQuery.isLoading ||
+    unverifiableQuery.isLoading ||
     vulnerabilityQuery.isLoading ||
     pingQuery.isLoading
 
@@ -92,6 +103,7 @@ const VerifierOverviewPage = () => {
     void pendingQuery.refetch()
     void verifiedQuery.refetch()
     void flaggedQuery.refetch()
+    void unverifiableQuery.refetch()
     void vulnerabilityQuery.refetch()
     void grievancesQuery.refetch()
   }

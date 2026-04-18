@@ -11,10 +11,11 @@ const QueueTable = ({
   isLoading,
   isError,
   error,
-  flagReasons,
-  onFlagReasonChange,
+  verificationNotes,
+  onVerificationNoteChange,
   onVerify,
   onFlag,
+  onUnverifiable,
   isRowBusy,
 }) => {
   return (
@@ -42,7 +43,7 @@ const QueueTable = ({
                 <th className="px-3 py-3 font-semibold">Net</th>
                 <th className="px-3 py-3 font-semibold">Screenshot</th>
                 <th className="px-3 py-3 font-semibold">Status</th>
-                <th className="px-3 py-3 font-semibold">Flag Reason</th>
+                <th className="px-3 py-3 font-semibold">Note</th>
                 <th className="px-3 py-3 font-semibold">Actions</th>
               </tr>
             </thead>
@@ -96,9 +97,9 @@ const QueueTable = ({
                     <td className="px-3 py-3">
                       {isPending ? (
                         <Input
-                          placeholder="Required when flagging"
-                          value={flagReasons[item.id] || ''}
-                          onChange={(event) => onFlagReasonChange(item.id, event.target.value)}
+                          placeholder="Required for flag or unverifiable"
+                          value={verificationNotes[item.id] || ''}
+                          onChange={(event) => onVerificationNoteChange(item.id, event.target.value)}
                           className="h-9"
                         />
                       ) : (
@@ -123,6 +124,14 @@ const QueueTable = ({
                             disabled={rowBusy}
                           >
                             Flag
+                          </Button>
+                          <Button
+                            type="button"
+                            className="rounded-lg border border-amber-600/70 bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-950 transition-opacity hover:opacity-90"
+                            onClick={() => onUnverifiable(item.id)}
+                            disabled={rowBusy}
+                          >
+                            Unverifiable
                           </Button>
                         </div>
                       ) : (
