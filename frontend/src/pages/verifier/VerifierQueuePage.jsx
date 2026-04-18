@@ -24,7 +24,7 @@ const VerifierQueuePage = () => {
   const queryClient = useQueryClient()
 
   const [notice, setNotice] = useState(null)
-  const [flagReasons, setFlagReasons] = useState({})
+  const [verificationNotes, setVerificationNotes] = useState({})
   const [shiftFilterDraft, setShiftFilterDraft] = useState(defaultShiftFilters)
   const [shiftFilters, setShiftFilters] = useState(defaultShiftFilters)
 
@@ -60,7 +60,27 @@ const VerifierQueuePage = () => {
       }),
     onSuccess: (_data, variables) => {
       setNotice({ type: 'success', message: 'Shift log flagged with explanation.' })
-      setFlagReasons((current) => ({
+      setVerificationNotes((current) => ({
+        ...current,
+        [variables.shiftLogId]: '',
+      }))
+      refreshVerifierData()
+    },
+    onError: (error) => {
+      setNotice({ type: 'error', message: parseApiError(error) })
+    },
+  })
+
+  const unverifiableMutation = useMutation({
+    mutationFn: ({ shiftLogId, reason }) =>
+      updateVerifierShiftLogVerification({
+        shiftLogId,
+        status: 'unverifiable',
+        anomalyExplanation: reason,
+      }),
+    onSuccess: (_data, variables) => {
+      setNotice({ type: 'success', message: 'Shift log marked as unverifiable.' })
+      setVerificationNotes((current) => ({
         ...current,
         [variables.shiftLogId]: '',
       }))
@@ -76,8 +96,10 @@ const VerifierQueuePage = () => {
   const isRowBusy = (shiftLogId) => {
     const verifyBusy = verifyMutation.isPending && verifyMutation.variables?.shiftLogId === shiftLogId
     const flagBusy = flagMutation.isPending && flagMutation.variables?.shiftLogId === shiftLogId
+    const unverifiableBusy =
+      unverifiableMutation.isPending && unverifiableMutation.variables?.shiftLogId === shiftLogId
 
-    return verifyBusy || flagBusy
+    return verifyBusy || flagBusy || unverifiableBusy
   }
 
   const handleVerify = (shiftLogId) => {
@@ -86,7 +108,7 @@ const VerifierQueuePage = () => {
   }
 
   const handleFlag = (shiftLogId) => {
-    const reason = String(flagReasons[shiftLogId] || '').trim()
+    const reason = String(verificationNotes[shiftLogId] || '').trim()
 
     if (!reason) {
       setNotice({
@@ -98,6 +120,21 @@ const VerifierQueuePage = () => {
 
     setNotice(null)
     flagMutation.mutate({ shiftLogId, reason })
+  }
+
+  const handleUnverifiable = (shiftLogId) => {
+    const reason = String(verificationNotes[shiftLogId] || '').trim()
+
+    if (!reason) {
+      setNotice({
+        type: 'error',
+        message: 'An explanation is required when marking a shift log as unverifiable.',
+      })
+      return
+    }
+
+    setNotice(null)
+    unverifiableMutation.mutate({ shiftLogId, reason })
   }
 
   const applyShiftFilters = () => {
@@ -127,7 +164,7 @@ const VerifierQueuePage = () => {
       <VerifierPageHeader
         badge="Primary Workflow"
         title="Verification Queue"
-        description="Validate shift evidence and finalize each pending record as verified or flagged."
+        description="Validate shift evidence and finalize each pending record as verified, flagged, or unverifiable."
         actions={
           <Button
             type="button"
@@ -159,15 +196,16 @@ const VerifierQueuePage = () => {
           isLoading={shiftLogsQuery.isLoading}
           isError={shiftLogsQuery.isError}
           error={shiftLogsQuery.error}
-          flagReasons={flagReasons}
-          onFlagReasonChange={(shiftLogId, value) =>
-            setFlagReasons((current) => ({
+          verificationNotes={verificationNotes}
+          onVerificationNoteChange={(shiftLogId, value) =>
+            setVerificationNotes((current) => ({
               ...current,
               [shiftLogId]: value,
             }))
           }
           onVerify={handleVerify}
           onFlag={handleFlag}
+          onUnverifiable={handleUnverifiable}
           isRowBusy={isRowBusy}
         />
       </VerifierSectionCard>

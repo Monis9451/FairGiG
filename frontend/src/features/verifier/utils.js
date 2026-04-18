@@ -11,6 +11,10 @@ export const badgeClassByStatus = (status) => {
     return 'border-brand-dark bg-brand-dark text-brand-light'
   }
 
+  if (status === 'unverifiable') {
+    return 'border-amber-500/60 bg-amber-100 text-amber-950'
+  }
+
   return 'border-brand-muted/50 bg-brand-light text-brand-darkest'
 }
 
