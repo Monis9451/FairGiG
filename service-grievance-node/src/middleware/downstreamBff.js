@@ -35,9 +35,32 @@ export const downstreamBff = (kind) => {
     return notConfigured(label);
   }
 
+  const timeoutMs = env.downstreamProxyTimeoutMs;
+
   return createProxyMiddleware({
     target: baseUrl,
     changeOrigin: true,
     pathRewrite: rewriteToPythonV1,
+    proxyTimeout: timeoutMs,
+    timeout: timeoutMs,
+    on: {
+      error: (err, _req, res) => {
+        if (!res || typeof res.writeHead !== "function" || res.writableEnded || res.headersSent) {
+          return;
+        }
+        const message =
+          err?.code === "ECONNRESET" || err?.code === "ECONNREFUSED"
+            ? `${label} is not reachable (is it running? Is ${kind === "earnings" ? "EARNINGS_SERVICE_URL" : "ANOMALY_SERVICE_URL"} correct?).`
+            : `${label} proxy error: ${err?.message || String(err)}`;
+        res.writeHead(502, { "Content-Type": "application/json" });
+        res.end(
+          JSON.stringify({
+            success: false,
+            data: null,
+            error: message,
+          })
+        );
+      },
+    },
   });
 };

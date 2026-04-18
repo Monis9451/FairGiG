@@ -56,6 +56,8 @@ export const env = {
   nodeEnv: process.env.NODE_ENV || "development",
   corsOrigins: parseOrigins(process.env.CORS_ORIGIN),
   axiosTimeoutMs: toNumber(process.env.AXIOS_TIMEOUT_MS, 5000),
+  /** BFF → Python (http-proxy-middleware); avoid hanging sockets when earnings/anomaly is down. */
+  downstreamProxyTimeoutMs: toPositiveNumber(process.env.DOWNSTREAM_PROXY_TIMEOUT_MS, 120_000),
   anomalyServiceUrl: normalizeServiceUrl(process.env.ANOMALY_SERVICE_URL),
   earningsServiceUrl: normalizeServiceUrl(
     process.env.EARNINGS_SERVICE_URL || process.env.ANALYTICS_SERVICE_URL
