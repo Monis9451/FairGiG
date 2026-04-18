@@ -2,22 +2,8 @@ import { motion } from 'framer-motion'
 import { useCommunityMine } from '@/hooks/useCommunity'
 import { CommunityPostCard } from '@/components/community/CommunityPostCard'
 import { Button } from '@/components/ui/button'
+import { PostStatusBadge } from '@/components/community/PostStatusBadge'
 import { fieldContainerVariant, fieldVariant } from '@/components/auth/AuthSplitCard'
-
-function statusBadge(status) {
-  const base = 'rounded-full px-2.5 py-0.5 text-xs font-bold uppercase tracking-wide'
-  switch (status) {
-    case 'visible':
-      return `${base} bg-brand-primary/15 text-brand-primary`
-    case 'pending':
-      return `${base} border border-brand-primary/40 text-brand-primary`
-    case 'hidden':
-    case 'removed':
-      return `${base} bg-brand-muted/25 text-brand-dark`
-    default:
-      return `${base} bg-brand-light text-brand-muted`
-  }
-}
 
 export function CommunityMinePanel({ onOpenComposer }) {
   const mine = useCommunityMine()
@@ -78,7 +64,7 @@ export function CommunityMinePanel({ onOpenComposer }) {
             footer={
               <div className="flex flex-col gap-2 text-sm">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className={statusBadge(post.status)}>{post.status}</span>
+                  <PostStatusBadge status={post.status} />
                   {post.moderator_note ? (
                     <span className="text-brand-muted">
                       Note: <span className="text-brand-dark">{post.moderator_note}</span>

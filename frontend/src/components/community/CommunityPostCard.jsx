@@ -12,14 +12,28 @@ function formatWhen(iso) {
   }
 }
 
-export function CommunityPostCard({ post, className, footer }) {
+export function CommunityPostCard({ post, className, footer, variant = 'default' }) {
+  const isFeed = variant === 'feed'
   return (
     <article
       className={cn(
-        'rounded-2xl border border-brand-muted bg-white p-4 shadow-md shadow-brand-darkest/5 sm:p-5',
+        'rounded-2xl border border-brand-muted p-4 shadow-md shadow-brand-darkest/5 sm:p-5',
+        isFeed
+          ? 'border-l-[5px] border-l-brand-primary bg-gradient-to-br from-white to-brand-light/35'
+          : 'bg-white',
         className
       )}
     >
+      {isFeed ? (
+        <div className="mb-2 flex items-center gap-2">
+          <span className="rounded-full bg-brand-primary/15 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-widest text-brand-primary">
+            Live
+          </span>
+          <span className="text-[10px] font-medium uppercase tracking-wide text-brand-muted">
+            Approved post
+          </span>
+        </div>
+      ) : null}
       <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-brand-muted">
         {post.platform ? (
           <span className="rounded-full bg-brand-light px-2 py-0.5 font-medium text-brand-dark">

@@ -678,6 +678,7 @@ paths:
         Only visible posts; peers never see who wrote them.
         Search matches title, body, or category (case-insensitive, server-side).
         Pagination: `total` is the full match count; `returned` is this page length.
+        Each item includes `upvote_count`, `comment_count`, and `viewer_upvoted` when `database/community_engagement.sql` is applied.
       operationId: getCommunityFeed
       security:
         - bearerAuth: []
@@ -793,6 +794,82 @@ paths:
           description: Posts for moderation with pagination
         "403":
           description: Not an advocate
+
+  /api/community/{id}/upvote:
+    post:
+      tags: [Community]
+      summary: Toggle upvote on a visible post
+      description: One upvote per user per post; calling again removes the upvote.
+      operationId: toggleCommunityPostUpvote
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: New counts after toggle
+        "404":
+          description: Post not visible or missing
+
+  /api/community/{id}/comments:
+    get:
+      tags: [Community]
+      summary: List comments (visible posts only)
+      description: Anonymous — no author fields returned.
+      operationId: getCommunityPostComments
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 80
+      responses:
+        "200":
+          description: Comments
+        "404":
+          description: Post not found
+    post:
+      tags: [Community]
+      summary: Add comment on a visible post
+      operationId: createCommunityPostComment
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [body]
+              properties:
+                body:
+                  type: string
+                  maxLength: 4000
+      responses:
+        "201":
+          description: Created
+        "404":
+          description: Post not open for comments
 
   /api/community/{id}:
     patch:

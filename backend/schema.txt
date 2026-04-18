@@ -89,3 +89,23 @@ status: (Enum) 'pending' | 'visible' | 'hidden' | 'removed' — advocates set vi
 moderator_note: (Text, optional)
 
 created_at, updated_at: (Timestamp)
+
+TABLE 6: community_post_upvotes
+
+post_id: (UUID) FK → community_posts(id), part of PK
+
+user_id: (UUID) FK → profiles(id), part of PK
+
+created_at: (Timestamp)
+
+TABLE 7: community_post_comments
+
+id: (UUID) Primary Key
+
+post_id: (UUID) FK → community_posts(id)
+
+author_id: (UUID) FK → profiles(id) — not returned in public comment API
+
+body: (Text)
+
+created_at: (Timestamp)

@@ -87,3 +87,41 @@ export function usePatchCommunityPost() {
     },
   })
 }
+
+export function useToggleUpvote() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async (postId) => {
+      const response = await apiClient.post(`/api/community/${postId}/upvote`)
+      return { postId, ...response.data.data }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['community', 'feed'] })
+    },
+  })
+}
+
+export function usePostComments(postId, enabled = true) {
+  return useQuery({
+    queryKey: ['community', 'comments', postId],
+    queryFn: async () => {
+      const response = await apiClient.get(`/api/community/${postId}/comments`)
+      return response.data.data.items
+    },
+    enabled: Boolean(postId) && enabled,
+  })
+}
+
+export function useAddComment() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ postId, body }) => {
+      const response = await apiClient.post(`/api/community/${postId}/comments`, { body })
+      return { postId, comment: response.data.data.comment }
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['community', 'comments', variables.postId] })
+      queryClient.invalidateQueries({ queryKey: ['community', 'feed'] })
+    },
+  })
+}

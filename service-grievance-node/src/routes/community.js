@@ -62,6 +62,42 @@ const mapFeedPost = (row) => ({
   created_at: row.created_at,
 });
 
+const mapPublicComment = (row) => ({
+  id: row.id,
+  body: row.body,
+  created_at: row.created_at,
+});
+
+const enrichFeedWithEngagement = async (supabase, items, viewerId) => {
+  if (!items.length) {
+    return items;
+  }
+  const ids = items.map((i) => i.id);
+  const { data, error } = await supabase.rpc("community_feed_engagement", {
+    p_ids: ids,
+    p_viewer: viewerId,
+  });
+  if (error) {
+    console.warn("community: feed engagement RPC unavailable:", error.message);
+    return items.map((item) => ({
+      ...item,
+      upvote_count: 0,
+      comment_count: 0,
+      viewer_upvoted: false,
+    }));
+  }
+  const byId = new Map((data || []).map((row) => [row.post_id, row]));
+  return items.map((item) => {
+    const row = byId.get(item.id);
+    return {
+      ...item,
+      upvote_count: Number(row?.upvote_count ?? 0),
+      comment_count: Number(row?.comment_count ?? 0),
+      viewer_upvoted: Boolean(row?.viewer_upvoted),
+    };
+  });
+};
+
 /** Advocate / moderation view includes author (internal only). */
 const mapModerationPost = (row) => ({
   ...mapFeedPost(row),
@@ -126,7 +162,8 @@ router.get(
       throw new HttpError(500, "Failed to load community feed.", error.message);
     }
 
-    const items = (data || []).map(mapFeedPost);
+    const baseItems = (data || []).map(mapFeedPost);
+    const items = await enrichFeedWithEngagement(supabase, baseItems, req.authUser.id);
     const totalRows = typeof total === "number" ? total : items.length;
 
     return res.status(200).json(
@@ -271,6 +308,178 @@ router.get(
         },
       })
     );
+  })
+);
+
+/**
+ * Toggle upvote on a visible post (one per user per post).
+ */
+router.post(
+  "/:id/upvote",
+  asyncHandler(async (req, res) => {
+    const supabase = getSupabaseClient();
+    const id = ensureRequiredString(req.params.id, "id");
+    const userId = req.authUser.id;
+
+    const { data: post, error: postErr } = await supabase
+      .from("community_posts")
+      .select("id, status")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (postErr) {
+      throw new HttpError(500, "Failed to verify post.", postErr.message);
+    }
+    if (!post || post.status !== "visible") {
+      throw new HttpError(404, "Post not found or not available for engagement.");
+    }
+
+    const { data: existing, error: exErr } = await supabase
+      .from("community_post_upvotes")
+      .select("post_id")
+      .eq("post_id", id)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (exErr) {
+      throw new HttpError(500, "Failed to check upvote.", exErr.message);
+    }
+
+    if (existing) {
+      const { error: delErr } = await supabase
+        .from("community_post_upvotes")
+        .delete()
+        .eq("post_id", id)
+        .eq("user_id", userId);
+      if (delErr) {
+        throw new HttpError(500, "Failed to remove upvote.", delErr.message);
+      }
+    } else {
+      const { error: insErr } = await supabase.from("community_post_upvotes").insert({
+        post_id: id,
+        user_id: userId,
+      });
+      if (insErr) {
+        throw new HttpError(500, "Failed to add upvote.", insErr.message);
+      }
+    }
+
+    const { data: stats, error: statsErr } = await supabase.rpc("community_feed_engagement", {
+      p_ids: [id],
+      p_viewer: userId,
+    });
+
+    if (!statsErr && stats?.[0]) {
+      const row = stats[0];
+      return res.status(200).json(
+        success({
+          upvote_count: Number(row.upvote_count ?? 0),
+          viewer_upvoted: Boolean(row.viewer_upvoted),
+        })
+      );
+    }
+
+    console.warn("community: upvote refresh RPC fallback:", statsErr?.message);
+    const { count, error: cErr } = await supabase
+      .from("community_post_upvotes")
+      .select("*", { count: "exact", head: true })
+      .eq("post_id", id);
+    if (cErr) {
+      throw new HttpError(500, "Failed to refresh upvote counts.", cErr.message);
+    }
+    const { data: mine } = await supabase
+      .from("community_post_upvotes")
+      .select("post_id")
+      .eq("post_id", id)
+      .eq("user_id", userId)
+      .maybeSingle();
+    return res.status(200).json(
+      success({
+        upvote_count: Number(count ?? 0),
+        viewer_upvoted: Boolean(mine),
+      })
+    );
+  })
+);
+
+/** Comments on visible posts only; peers do not see author identity. */
+router.get(
+  "/:id/comments",
+  asyncHandler(async (req, res) => {
+    const supabase = getSupabaseClient();
+    const id = ensureRequiredString(req.params.id, "id");
+    const limit = Math.min(Math.max(Number(req.query.limit) || 80, 1), 200);
+
+    const { data: post, error: postErr } = await supabase
+      .from("community_posts")
+      .select("id, status")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (postErr) {
+      throw new HttpError(500, "Failed to verify post.", postErr.message);
+    }
+    if (!post || post.status !== "visible") {
+      throw new HttpError(404, "Post not found.");
+    }
+
+    const { data, error } = await supabase
+      .from("community_post_comments")
+      .select("id, body, created_at")
+      .eq("post_id", id)
+      .order("created_at", { ascending: true })
+      .limit(limit);
+
+    if (error) {
+      throw new HttpError(500, "Failed to load comments.", error.message);
+    }
+
+    return res.status(200).json(
+      success({
+        items: (data || []).map(mapPublicComment),
+      })
+    );
+  })
+);
+
+router.post(
+  "/:id/comments",
+  asyncHandler(async (req, res) => {
+    const supabase = getSupabaseClient();
+    const id = ensureRequiredString(req.params.id, "id");
+    const body = ensureRequiredString(req.body.body, "body");
+    if (body.length > 4000) {
+      throw new HttpError(400, "Comment is too long (max 4000 characters).");
+    }
+
+    const { data: post, error: postErr } = await supabase
+      .from("community_posts")
+      .select("id, status")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (postErr) {
+      throw new HttpError(500, "Failed to verify post.", postErr.message);
+    }
+    if (!post || post.status !== "visible") {
+      throw new HttpError(404, "Post not found or not open for comments.");
+    }
+
+    const { data, error } = await supabase
+      .from("community_post_comments")
+      .insert({
+        post_id: id,
+        author_id: req.authUser.id,
+        body,
+      })
+      .select("id, body, created_at")
+      .single();
+
+    if (error) {
+      throw new HttpError(500, "Failed to post comment.", error.message);
+    }
+
+    return res.status(201).json(success({ comment: mapPublicComment(data) }));
   })
 );
 

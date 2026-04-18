@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useCommunityModeration, usePatchCommunityPost } from '@/hooks/useCommunity'
 import { CommunityPostCard } from '@/components/community/CommunityPostCard'
+import { PostStatusBadge } from '@/components/community/PostStatusBadge'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { fieldContainerVariant, fieldVariant } from '@/components/auth/AuthSplitCard'
@@ -56,9 +57,10 @@ function ModerationRow({ post }) {
 
   return (
     <div>
-      <p className="mb-2 text-xs font-bold uppercase tracking-wide text-brand-primary">
-        Current status: {post.status}
-      </p>
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <span className="text-xs font-bold uppercase tracking-wide text-brand-muted">Current:</span>
+        <PostStatusBadge status={post.status} />
+      </div>
     <CommunityPostCard
       post={post}
       footer={

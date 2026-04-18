@@ -22,6 +22,7 @@ Repo SQL (paste into SQL editor as needed):
 - database/fix_auth_users_null_tokens.sql — if login fails with "Database error querying schema" for manually seeded auth users, run this once
 - database/seed_auth_users.sql — 25 dev users (20 workers, 3 verifiers, 2 advocates) seed.*@fairgig.dev + auth + profiles; password in file header
 - database/community_posts.sql — worker community bulletin (anonymous feed + advocate moderation)
+- database/community_engagement.sql — upvotes + comments + RPC for feed counts (run for engagement UI)
 
 Tables in schema "public" (from Supabase; RLS enabled on all)
 --------------------------------------------------------------

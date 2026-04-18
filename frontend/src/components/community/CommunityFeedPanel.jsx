@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { useCommunityFeed } from '@/hooks/useCommunity'
 import { CommunityPostCard } from '@/components/community/CommunityPostCard'
+import { CommunityPostEngagement } from '@/components/community/CommunityPostEngagement'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
@@ -104,7 +105,11 @@ export function CommunityFeedPanel({ role, onOpenComposer }) {
         >
           {items.map((post) => (
             <motion.li key={post.id} variants={fieldVariant}>
-              <CommunityPostCard post={post} />
+              <CommunityPostCard
+                post={post}
+                variant="feed"
+                footer={<CommunityPostEngagement post={post} />}
+              />
             </motion.li>
           ))}
         </motion.ul>
