@@ -15,10 +15,10 @@ export const shiftFormSchema = z
       .number({ invalid_type_error: 'Deductions must be a number' })
       .min(0, 'Deductions cannot be negative'),
     net_received: z.coerce.number().min(0),
-    screenshot_url: z
-      .string()
-      .min(1, 'Screenshot upload is required')
-      .url('Uploaded screenshot URL is invalid'),
+    screenshot_url: z.union([
+      z.literal(''),
+      z.string().url('Uploaded screenshot URL is invalid'),
+    ]),
   })
   .refine((values) => values.deductions <= values.gross_earned, {
     path: ['deductions'],

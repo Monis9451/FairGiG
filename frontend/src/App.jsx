@@ -4,6 +4,7 @@ import Register from './pages/auth/Register'
 import CommunityPage from './pages/community/CommunityPage'
 import ProtectedRoute from './components/ProtectedRoute'
 import { AppShellLayout } from './components/layout/AppShellLayout'
+import ToastViewport from './components/ui/ToastViewport'
 import useAuthStore from './store/authStore'
 import { renderAdvocateRoutes } from './routes/advocateRoutes'
 import { renderVerifierRoutes } from './routes/verifierRoutes'
@@ -23,46 +24,50 @@ const App = () => {
   const redirectToDashboard = isAuthenticated && hasValidRole
 
   return (
-    <Routes>
-      <Route
-        path="/login"
-        element={redirectToDashboard ? <Navigate to={dashboardPath} replace /> : <Login />}
-      />
-      <Route
-        path="/register"
-        element={redirectToDashboard ? <Navigate to={dashboardPath} replace /> : <Register />}
-      />
+    <>
+      <ToastViewport />
 
-      <Route element={<ProtectedRoute allowedRoles={['worker']} />}>
-        <Route element={<AppShellLayout />}>
-          {renderWorkerRoutes()}
+      <Routes>
+        <Route
+          path="/login"
+          element={redirectToDashboard ? <Navigate to={dashboardPath} replace /> : <Login />}
+        />
+        <Route
+          path="/register"
+          element={redirectToDashboard ? <Navigate to={dashboardPath} replace /> : <Register />}
+        />
+
+        <Route element={<ProtectedRoute allowedRoles={['worker']} />}>
+          <Route element={<AppShellLayout />}>
+            {renderWorkerRoutes()}
+          </Route>
         </Route>
-      </Route>
 
-      <Route element={<ProtectedRoute allowedRoles={['verifier']} />}>
-        <Route element={<AppShellLayout />}>
-          {renderVerifierRoutes()}
+        <Route element={<ProtectedRoute allowedRoles={['verifier']} />}>
+          <Route element={<AppShellLayout />}>
+            {renderVerifierRoutes()}
+          </Route>
         </Route>
-      </Route>
 
-      <Route element={<ProtectedRoute allowedRoles={['worker', 'verifier', 'advocate', 'analyst']} />}>
-        <Route element={<AppShellLayout />}>
-          <Route path="/community" element={<CommunityPage />} />
+        <Route element={<ProtectedRoute allowedRoles={['worker', 'verifier', 'advocate', 'analyst']} />}>
+          <Route element={<AppShellLayout />}>
+            <Route path="/community" element={<CommunityPage />} />
+          </Route>
         </Route>
-      </Route>
 
-      <Route element={<ProtectedRoute allowedRoles={['advocate', 'analyst']} />}>
-        <Route element={<AppShellLayout />}>
-          {renderAdvocateRoutes('/advocate')}
-          {renderAdvocateRoutes('/analyst')}
+        <Route element={<ProtectedRoute allowedRoles={['advocate', 'analyst']} />}>
+          <Route element={<AppShellLayout />}>
+            {renderAdvocateRoutes('/advocate')}
+            {renderAdvocateRoutes('/analyst')}
+          </Route>
         </Route>
-      </Route>
 
-      <Route
-        path="*"
-        element={<Navigate to={redirectToDashboard ? dashboardPath : '/login'} replace />}
-      />
-    </Routes>
+        <Route
+          path="*"
+          element={<Navigate to={redirectToDashboard ? dashboardPath : '/login'} replace />}
+        />
+      </Routes>
+    </>
   )
 }
 

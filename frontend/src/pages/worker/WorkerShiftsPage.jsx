@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 
-import WorkerNoticeBanner from '@/components/worker/WorkerNoticeBanner'
 import WorkerPageHeader from '@/components/worker/WorkerPageHeader'
 import ShiftFormCard from '@/components/worker/shifts/ShiftFormCard'
 import CsvImportCard from '@/components/worker/shifts/CsvImportCard'
@@ -23,6 +22,7 @@ import {
   parseApiError,
   shiftBadgeClassByStatus,
 } from '@/features/worker/utils'
+import { useToast } from '@/hooks/useToast'
 
 const getTodayLocalDate = () => {
   const now = new Date()
@@ -32,8 +32,8 @@ const getTodayLocalDate = () => {
 
 const WorkerShiftsPage = () => {
   const queryClient = useQueryClient()
+  const { success: showSuccessToast, error: showErrorToast } = useToast()
 
-  const [notice, setNotice] = useState(null)
   const [csvFile, setCsvFile] = useState(null)
   const [anomalyResult, setAnomalyResult] = useState(null)
   const [screenshotFile, setScreenshotFile] = useState(null)
@@ -101,23 +101,39 @@ const WorkerShiftsPage = () => {
   )
 
   const analyzeMutation = useMutation({
+    meta: {
+      disableSuccessToast: true,
+      disableErrorToast: true,
+    },
     mutationFn: (payload) => analyzeWorkerShift(payload),
     onSuccess: (data) => {
       setAnomalyResult(data)
-      setNotice({
-        type: data?.is_anomaly ? 'error' : 'success',
-        message: data?.explanation || 'Anomaly analysis completed.',
-      })
+
+      const explanation =
+        data?.explanation ||
+        data?.insufficient_reason ||
+        'Anomaly analysis completed, but no explanation was returned.'
+
+      if (data?.ready === false || data?.is_anomaly) {
+        showErrorToast(explanation)
+        return
+      }
+
+      showSuccessToast(explanation)
     },
     onError: (error) => {
-      setNotice({ type: 'error', message: parseApiError(error) })
+      showErrorToast(parseApiError(error))
     },
   })
 
   const createShiftMutation = useMutation({
+    meta: {
+      disableSuccessToast: true,
+      disableErrorToast: true,
+    },
     mutationFn: (payload) => createWorkerShiftLog(payload),
     onSuccess: () => {
-      setNotice({ type: 'success', message: 'Shift log created successfully.' })
+      showSuccessToast('Shift saved successfully.')
       queryClient.invalidateQueries({ queryKey: ['worker-shift-logs'] })
 
       // Do not auto-call anomaly here: it doubles latency and fails the whole flow with 502/504
@@ -137,49 +153,32 @@ const WorkerShiftsPage = () => {
       })
     },
     onError: (error) => {
-      setNotice({ type: 'error', message: parseApiError(error) })
+      showErrorToast(parseApiError(error))
     },
   })
 
   const csvImportMutation = useMutation({
+    meta: {
+      disableSuccessToast: true,
+      disableErrorToast: true,
+    },
     mutationFn: (file) => importWorkerShiftLogsCsv(file),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['worker-shift-logs'] })
       setCsvFile(null)
-      setNotice({
-        type: 'success',
-        message: `CSV import done: ${data?.inserted_rows || 0} rows inserted.`,
-      })
+      showSuccessToast(`CSV import done: ${data?.inserted_rows || 0} rows inserted.`)
     },
     onError: (error) => {
-      setNotice({ type: 'error', message: parseApiError(error) })
+      showErrorToast(parseApiError(error))
     },
   })
 
   const uploadScreenshotMutation = useMutation({
+    meta: {
+      disableSuccessToast: true,
+      disableErrorToast: true,
+    },
     mutationFn: (file) => uploadWorkerShiftScreenshot(file),
-    onSuccess: (data) => {
-      const screenshot = data?.screenshot || data
-      const secureUrl = screenshot?.secure_url
-
-      if (!secureUrl) {
-        setNotice({
-          type: 'error',
-          message: 'Screenshot upload completed but URL is missing in response.',
-        })
-        return
-      }
-
-      setUploadedScreenshot(screenshot)
-      setValue('screenshot_url', secureUrl, {
-        shouldValidate: true,
-        shouldDirty: true,
-      })
-      setNotice({ type: 'success', message: 'Screenshot uploaded successfully.' })
-    },
-    onError: (error) => {
-      setNotice({ type: 'error', message: parseApiError(error) })
-    },
   })
 
   const onSelectScreenshotFile = (file) => {
@@ -196,67 +195,81 @@ const WorkerShiftsPage = () => {
 
     if (!String(file.type || '').toLowerCase().startsWith('image/')) {
       setScreenshotFile(null)
-      setNotice({ type: 'error', message: 'Screenshot must be an image file.' })
+      showErrorToast('Invalid screenshot type. Please upload JPG, PNG, or WEBP.')
       return
     }
 
     if (file.size > MAX_SCREENSHOT_BYTES) {
       setScreenshotFile(null)
-      setNotice({
-        type: 'error',
-        message: `Screenshot exceeds ${MAX_SCREENSHOT_MB} MB limit.`,
-      })
+      showErrorToast(`Screenshot exceeds ${MAX_SCREENSHOT_MB} MB limit.`)
       return
     }
 
-    setNotice(null)
     setScreenshotFile(file)
   }
 
-  const onUploadScreenshot = () => {
-    if (!screenshotFile) {
-      setNotice({ type: 'error', message: 'Select a screenshot file before uploading.' })
+  const onCreateShift = handleSubmit(async (values) => {
+    let screenshotUrl = String(values.screenshot_url || '').trim()
+
+    if (!screenshotUrl && !screenshotFile) {
+      showErrorToast('Screenshot is compulsory before saving the shift.')
       return
     }
 
-    setNotice(null)
-    uploadScreenshotMutation.mutate(screenshotFile)
-  }
+    if (!screenshotUrl && screenshotFile) {
+      try {
+        const uploadData = await uploadScreenshotMutation.mutateAsync(screenshotFile)
+        const screenshot = uploadData?.screenshot || uploadData
+        const secureUrl = screenshot?.secure_url
 
-  const onCreateShift = handleSubmit((values) => {
-    if (!values.screenshot_url) {
-      setNotice({ type: 'error', message: 'Screenshot upload is required before saving shift.' })
-      return
+        if (!secureUrl) {
+          showErrorToast('Screenshot upload completed but URL is missing in response.')
+          return
+        }
+
+        screenshotUrl = secureUrl
+        setUploadedScreenshot(screenshot)
+        setValue('screenshot_url', secureUrl, {
+          shouldValidate: true,
+          shouldDirty: true,
+        })
+      } catch (error) {
+        showErrorToast(parseApiError(error))
+        return
+      }
     }
 
-    setNotice(null)
-    createShiftMutation.mutate(normalizeShiftPayload(values))
+    createShiftMutation.mutate(
+      normalizeShiftPayload({
+        ...values,
+        screenshot_url: screenshotUrl,
+      })
+    )
   })
 
   const onAnalyzeCurrentShift = async () => {
     const valid = await trigger(['platform', 'date', 'gross_earned', 'deductions', 'net_received'])
     if (!valid) {
-      setNotice({ type: 'error', message: 'Fix form validation errors before anomaly analysis.' })
+      showErrorToast('Fix form validation errors before anomaly analysis.')
       return
     }
 
     const values = getValues()
     const currentShift = normalizeShiftPayload(values)
-    analyzeMutation.mutate(buildAnalyzePayload(shiftItems, currentShift))
+    analyzeMutation.mutate(buildAnalyzePayload(currentShift))
   }
 
   const onImportCsv = () => {
     if (!csvFile) {
-      setNotice({ type: 'error', message: 'Select a CSV file before importing.' })
+      showErrorToast('Select a CSV file before importing.')
       return
     }
 
     if (!csvFile.name.toLowerCase().endsWith('.csv')) {
-      setNotice({ type: 'error', message: 'Only .csv files are supported.' })
+      showErrorToast('Only .csv files are supported.')
       return
     }
 
-    setNotice(null)
     csvImportMutation.mutate(csvFile)
   }
 
@@ -269,8 +282,6 @@ const WorkerShiftsPage = () => {
         summary={`${shiftItems.length} logs tracked · ${pendingCount} pending · ${verifiedCount} verified`}
       />
 
-      <WorkerNoticeBanner notice={notice} />
-
       <section className="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
         <ShiftFormCard
           register={register}
@@ -279,7 +290,6 @@ const WorkerShiftsPage = () => {
           platformOptions={WORKER_PLATFORM_OPTIONS}
           onSelectScreenshotFile={onSelectScreenshotFile}
           maxScreenshotMb={MAX_SCREENSHOT_MB}
-          onUploadScreenshot={onUploadScreenshot}
           screenshotFile={screenshotFile}
           uploadScreenshotPending={uploadScreenshotMutation.isPending}
           uploadedScreenshot={uploadedScreenshot}
@@ -296,6 +306,7 @@ const WorkerShiftsPage = () => {
           onImportCsv={onImportCsv}
           csvImportPending={csvImportMutation.isPending}
           anomalyResult={anomalyResult}
+          analyzePending={analyzeMutation.isPending}
         />
       </section>
 

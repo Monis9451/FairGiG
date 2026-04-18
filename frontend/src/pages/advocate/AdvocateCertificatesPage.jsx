@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import WorkerPageHeader from '@/components/worker/WorkerPageHeader'
 import WorkerSectionCard from '@/components/worker/WorkerSectionCard'
+import { useToast } from '@/hooks/useToast'
 import { buildCertificatePrintHtml, parseApiError } from '@/features/worker/utils'
 import { formatCurrency, formatDate } from '@/utils/formatters'
 
@@ -15,7 +16,7 @@ const actionButtonClass =
   'inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-all duration-200 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60'
 
 const AdvocateCertificatesPage = () => {
-  const [notice, setNotice] = useState(null)
+  const { success: showSuccessToast, error: showErrorToast } = useToast()
   const [lookupDraft, setLookupDraft] = useState({
     workerId: '',
     from: '',
@@ -44,11 +45,10 @@ const AdvocateCertificatesPage = () => {
   const runLookup = () => {
     const workerId = lookupDraft.workerId.trim()
     if (!workerId) {
-      setNotice({ type: 'error', message: 'Enter a worker ID before searching.' })
+      showErrorToast('Enter a worker ID before searching.')
       return
     }
 
-    setNotice(null)
     setLookup({
       workerId,
       from: lookupDraft.from,
@@ -58,7 +58,7 @@ const AdvocateCertificatesPage = () => {
 
   const onDownloadCertificateJson = () => {
     if (!certificate) {
-      setNotice({ type: 'error', message: 'Certificate data is not available yet.' })
+      showErrorToast('Certificate data is not available yet.')
       return
     }
 
@@ -75,7 +75,7 @@ const AdvocateCertificatesPage = () => {
 
   const onPrintCertificate = () => {
     if (!certificate) {
-      setNotice({ type: 'error', message: 'Load certificate data before printing.' })
+      showErrorToast('Load certificate data before printing.')
       return
     }
 
@@ -93,7 +93,7 @@ const AdvocateCertificatesPage = () => {
     const frameWindow = printFrame.contentWindow
     if (!frameWindow) {
       document.body.removeChild(printFrame)
-      setNotice({ type: 'error', message: 'Unable to initialize print view.' })
+      showErrorToast('Unable to initialize print view.')
       return
     }
 
@@ -127,17 +127,11 @@ const AdvocateCertificatesPage = () => {
         window.setTimeout(() => URL.revokeObjectURL(fallbackUrl), 30_000)
 
         if (!fallbackWindow) {
-          setNotice({
-            type: 'error',
-            message: 'Printing was blocked by the browser. Allow popups and try again.',
-          })
+          showErrorToast('Printing was blocked by the browser. Allow popups and try again.')
           return
         }
 
-        setNotice({
-          type: 'success',
-          message: 'Opened printable certificate in a new tab. Use browser Print from that tab.',
-        })
+        showSuccessToast('Opened printable certificate in a new tab. Use browser Print from that tab.')
       }
     }, 250)
   }
@@ -149,18 +143,6 @@ const AdvocateCertificatesPage = () => {
         title="Worker Certificate Lookup"
         description="Paste a worker ID, optionally set a date range, and fetch verified earnings certificates for export or print."
       />
-
-      {notice ? (
-        <p
-          className={`rounded-xl border px-4 py-3 text-sm ${
-            notice.type === 'error'
-              ? 'border-brand-dark bg-brand-dark text-brand-light'
-              : 'border-brand-primary/35 bg-brand-light text-brand-darkest'
-          }`}
-        >
-          {notice.message}
-        </p>
-      ) : null}
 
       <WorkerSectionCard
         kicker="Lookup"

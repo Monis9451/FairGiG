@@ -258,7 +258,8 @@ def analyze(
             current_shift=payload.current_shift,
         )
 
-    target_platform = payload.platform or payload.current_shift.platform
+    result_platform = payload.current_shift.platform
+    history_platform_filter = payload.platform
 
     history: list[ShiftSample] = payload.history or []
     history_source = "payload_history"
@@ -267,7 +268,7 @@ def analyze(
         history_source = "supabase_verified_history"
         history = _load_verified_history_from_db(
             worker_id=worker_id,
-            platform=target_platform,
+            platform=history_platform_filter,
             current_date=payload.current_shift.date,
             history_days=payload.history_days or settings.anomaly_history_days,
             history_limit=payload.history_limit or settings.anomaly_history_limit,
@@ -291,7 +292,7 @@ def analyze(
             ready=False,
             insufficient_reason=insufficient,
             worker_id=UUID(worker_id),
-            platform=target_platform,
+            platform=result_platform,
             current_shift_date=payload.current_shift.date,
             shift_log_id=payload.shift_log_id,
             history_count=len(history),
@@ -301,7 +302,7 @@ def analyze(
             worker_id=worker_id,
             shift_log_id=payload.shift_log_id,
             auth=auth,
-            target_platform=target_platform,
+            target_platform=result_platform,
             current_shift=payload.current_shift,
             history_source=history_source,
             ready=False,
@@ -341,7 +342,7 @@ def analyze(
         method=combined.method,
         data_source=history_source,
         worker_id=UUID(worker_id),
-        platform=target_platform,
+        platform=result_platform,
         current_shift_date=payload.current_shift.date,
         shift_log_id=payload.shift_log_id,
         current_net_received=combined.net.current_net,
@@ -359,7 +360,7 @@ def analyze(
         worker_id=worker_id,
         shift_log_id=payload.shift_log_id,
         auth=auth,
-        target_platform=target_platform,
+        target_platform=result_platform,
         current_shift=payload.current_shift,
         history_source=history_source,
         ready=True,

@@ -57,12 +57,16 @@ def analyze_shift_nets(
     std_dev = float(pstdev(history_nets)) if len(history_nets) > 1 else 0.0
 
     if std_dev > 1e-9:
-        z_score = (float(current_net) - mean_net) / std_dev
+        raw_z_score = (float(current_net) - mean_net) / std_dev
     else:
-        z_score = 0.0
+        raw_z_score = 0.0
+
+    # For worker-protection use-cases, we treat only downside deviation as risk.
+    z_score = raw_z_score if raw_z_score < 0.0 else 0.0
 
     if mean_net > 1e-9:
-        percent_drop = ((mean_net - float(current_net)) / mean_net) * 100.0
+        raw_percent_drop = ((mean_net - float(current_net)) / mean_net) * 100.0
+        percent_drop = max(raw_percent_drop, 0.0)
     else:
         percent_drop = 0.0
 
@@ -72,14 +76,17 @@ def analyze_shift_nets(
 
     if is_anomaly:
         explanation = (
-            f"Earnings are {max(percent_drop, 0.0):.1f}% lower than verified baseline "
-            f"(mean {mean_net:.2f})."
+            f"Possible pay drop detected. This shift is {percent_drop:.1f}% lower than "
+            "your usual verified earnings."
         )
     else:
-        explanation = (
-            f"No net-income anomaly. Current net is within expected range "
-            f"(z-score {z_score:.2f}, drop {percent_drop:.1f}%)."
-        )
+        if percent_drop <= 1e-9:
+            explanation = "No pay-drop anomaly. This shift is not lower than your usual verified earnings."
+        else:
+            explanation = (
+                f"No pay-drop anomaly. This shift is {percent_drop:.1f}% lower than usual, "
+                "but still below the alert threshold."
+            )
 
     return AnomalyResult(
         is_anomaly=is_anomaly,

@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { fieldVariant, fieldContainerVariant } from './motionVariants';
 import { useSignUp } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/useToast';
 
 const registerSchema = z.object({
   fullName: z.string().min(2, 'Name is required'),
@@ -21,6 +22,7 @@ const registerSchema = z.object({
 
 export function RegisterForm() {
   const signUp = useSignUp();
+  const { error: showErrorToast } = useToast();
 
   const {
     register,
@@ -46,8 +48,12 @@ export function RegisterForm() {
     });
   };
 
+  const onInvalid = () => {
+    showErrorToast('Please fix the highlighted registration fields.');
+  };
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} autoComplete="off">
+    <form onSubmit={handleSubmit(onSubmit, onInvalid)} autoComplete="off">
       <motion.div variants={fieldContainerVariant} initial="hidden" animate="visible" className="flex flex-col gap-2.5">
         <motion.div variants={fieldVariant} className="grid gap-2.5 md:grid-cols-2 md:gap-3">
           <div>

@@ -18,7 +18,6 @@ const ShiftFormCard = ({
   platformOptions,
   onSelectScreenshotFile,
   maxScreenshotMb,
-  onUploadScreenshot,
   screenshotFile,
   uploadScreenshotPending,
   uploadedScreenshot,
@@ -28,6 +27,8 @@ const ShiftFormCard = ({
   analyzePending,
   onAnalyzeCurrentShift,
 }) => {
+  const shiftSaveInProgress = savePending || uploadScreenshotPending
+
   return (
     <WorkerSectionCard
       kicker="Shift Capture"
@@ -144,26 +145,19 @@ const ShiftFormCard = ({
               onChange={(event) => onSelectScreenshotFile(event.target.files?.[0] || null)}
             />
             <p className="mt-2 text-xs text-brand-muted">
-              Allowed: JPG, PNG, WEBP up to {maxScreenshotMb} MB.
+              Allowed: JPG, PNG, WEBP up to {maxScreenshotMb} MB. Screenshot will auto-upload when you save shift.
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <Button
-              type="button"
-              className="inline-flex min-h-[42px] items-center rounded-xl border border-brand-primary bg-brand-primary px-4 py-2 text-sm font-semibold text-brand-light shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:opacity-95 disabled:translate-y-0 disabled:opacity-60"
-              onClick={onUploadScreenshot}
-              disabled={!screenshotFile || uploadScreenshotPending}
-            >
-              {uploadScreenshotPending ? 'Uploading...' : 'Upload Screenshot'}
-            </Button>
-
-            <p className="text-sm font-medium text-brand-muted">
-              {uploadedScreenshot?.secure_url
-                ? 'Uploaded to Cloudinary.'
-                : 'Upload screenshot before saving the shift.'}
-            </p>
-          </div>
+          <p className="text-sm font-medium text-brand-muted">
+            {uploadScreenshotPending
+              ? 'Uploading screenshot...'
+              : uploadedScreenshot?.secure_url
+                ? 'Screenshot uploaded and ready.'
+                : screenshotFile
+                  ? 'Screenshot selected. It will upload automatically on save.'
+                  : 'Select a screenshot before saving shift.'}
+          </p>
 
           {screenshotPreviewUrl ? (
             <div className="space-y-2">
@@ -198,9 +192,9 @@ const ShiftFormCard = ({
           <Button
             type="submit"
             className="inline-flex min-h-[44px] items-center rounded-xl border border-brand-primary bg-brand-primary px-4 py-2 text-sm font-semibold text-brand-light shadow-[0_10px_20px_rgba(18,78,102,0.2)] transition-all duration-200 hover:-translate-y-0.5 hover:opacity-95 disabled:translate-y-0 disabled:opacity-60"
-            disabled={savePending || uploadScreenshotPending || !watchedScreenshotUrl}
+            disabled={shiftSaveInProgress}
           >
-            {savePending ? 'Saving...' : 'Save Shift'}
+            {shiftSaveInProgress ? 'Uploading + Saving...' : 'Save Shift'}
           </Button>
 
           <Button
@@ -209,7 +203,7 @@ const ShiftFormCard = ({
             onClick={onAnalyzeCurrentShift}
             disabled={analyzePending}
           >
-            {analyzePending ? 'Analyzing...' : 'Analyze Current Shift'}
+            {analyzePending ? 'Processing...' : 'Analyze Current Shift'}
           </Button>
         </div>
       </form>

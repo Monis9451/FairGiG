@@ -3,7 +3,6 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { RefreshCw } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
-import VerifierNoticeBanner from '@/components/verifier/VerifierNoticeBanner'
 import VerifierPageHeader from '@/components/verifier/VerifierPageHeader'
 import VerifierSectionCard from '@/components/verifier/VerifierSectionCard'
 import QueueFilters from '@/components/verifier/queue/QueueFilters'
@@ -11,6 +10,7 @@ import QueueTable from '@/components/verifier/queue/QueueTable'
 import { parseApiError } from '@/features/verifier/utils'
 import { useVerifierShiftLogsQuery } from '@/hooks/useVerifierQueries'
 import { updateVerifierShiftLogVerification } from '@/api/verifier'
+import { useToast } from '@/hooks/useToast'
 
 const defaultShiftFilters = {
   workerId: '',
@@ -22,8 +22,8 @@ const defaultShiftFilters = {
 
 const VerifierQueuePage = () => {
   const queryClient = useQueryClient()
+  const { success: showSuccessToast, error: showErrorToast } = useToast()
 
-  const [notice, setNotice] = useState(null)
   const [verificationNotes, setVerificationNotes] = useState({})
   const [shiftFilterDraft, setShiftFilterDraft] = useState(defaultShiftFilters)
   const [shiftFilters, setShiftFilters] = useState(defaultShiftFilters)
@@ -36,6 +36,10 @@ const VerifierQueuePage = () => {
   }
 
   const verifyMutation = useMutation({
+    meta: {
+      disableSuccessToast: true,
+      disableErrorToast: true,
+    },
     mutationFn: ({ shiftLogId }) =>
       updateVerifierShiftLogVerification({
         shiftLogId,
@@ -43,15 +47,19 @@ const VerifierQueuePage = () => {
         anomalyExplanation: null,
       }),
     onSuccess: () => {
-      setNotice({ type: 'success', message: 'Shift log marked as verified.' })
+      showSuccessToast('Shift log marked as verified.')
       refreshVerifierData()
     },
     onError: (error) => {
-      setNotice({ type: 'error', message: parseApiError(error) })
+      showErrorToast(parseApiError(error))
     },
   })
 
   const flagMutation = useMutation({
+    meta: {
+      disableSuccessToast: true,
+      disableErrorToast: true,
+    },
     mutationFn: ({ shiftLogId, reason }) =>
       updateVerifierShiftLogVerification({
         shiftLogId,
@@ -59,7 +67,7 @@ const VerifierQueuePage = () => {
         anomalyExplanation: reason,
       }),
     onSuccess: (_data, variables) => {
-      setNotice({ type: 'success', message: 'Shift log flagged with explanation.' })
+      showSuccessToast('Shift log flagged with explanation.')
       setVerificationNotes((current) => ({
         ...current,
         [variables.shiftLogId]: '',
@@ -67,11 +75,15 @@ const VerifierQueuePage = () => {
       refreshVerifierData()
     },
     onError: (error) => {
-      setNotice({ type: 'error', message: parseApiError(error) })
+      showErrorToast(parseApiError(error))
     },
   })
 
   const unverifiableMutation = useMutation({
+    meta: {
+      disableSuccessToast: true,
+      disableErrorToast: true,
+    },
     mutationFn: ({ shiftLogId, reason }) =>
       updateVerifierShiftLogVerification({
         shiftLogId,
@@ -79,7 +91,7 @@ const VerifierQueuePage = () => {
         anomalyExplanation: reason,
       }),
     onSuccess: (_data, variables) => {
-      setNotice({ type: 'success', message: 'Shift log marked as unverifiable.' })
+      showSuccessToast('Shift log marked as unverifiable.')
       setVerificationNotes((current) => ({
         ...current,
         [variables.shiftLogId]: '',
@@ -87,7 +99,7 @@ const VerifierQueuePage = () => {
       refreshVerifierData()
     },
     onError: (error) => {
-      setNotice({ type: 'error', message: parseApiError(error) })
+      showErrorToast(parseApiError(error))
     },
   })
 
@@ -103,7 +115,6 @@ const VerifierQueuePage = () => {
   }
 
   const handleVerify = (shiftLogId) => {
-    setNotice(null)
     verifyMutation.mutate({ shiftLogId })
   }
 
@@ -111,14 +122,10 @@ const VerifierQueuePage = () => {
     const reason = String(verificationNotes[shiftLogId] || '').trim()
 
     if (!reason) {
-      setNotice({
-        type: 'error',
-        message: 'Flag reason is required when marking a shift log as flagged.',
-      })
+      showErrorToast('Flag reason is required when marking a shift log as flagged.')
       return
     }
 
-    setNotice(null)
     flagMutation.mutate({ shiftLogId, reason })
   }
 
@@ -126,14 +133,10 @@ const VerifierQueuePage = () => {
     const reason = String(verificationNotes[shiftLogId] || '').trim()
 
     if (!reason) {
-      setNotice({
-        type: 'error',
-        message: 'An explanation is required when marking a shift log as unverifiable.',
-      })
+      showErrorToast('An explanation is required when marking a shift log as unverifiable.')
       return
     }
 
-    setNotice(null)
     unverifiableMutation.mutate({ shiftLogId, reason })
   }
 
@@ -177,8 +180,6 @@ const VerifierQueuePage = () => {
           </Button>
         }
       />
-
-      <VerifierNoticeBanner notice={notice} />
 
       <VerifierSectionCard
         kicker="Queue Filters"

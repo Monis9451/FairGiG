@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import WorkerPageHeader from '@/components/worker/WorkerPageHeader'
 import WorkerSectionCard from '@/components/worker/WorkerSectionCard'
+import { useToast } from '@/hooks/useToast'
 import { GRIEVANCE_STATUS_OPTIONS } from '@/features/verifier/constants'
 import { parseApiError, parseTagsFromInput } from '@/features/worker/utils'
 import {
@@ -128,10 +129,10 @@ function GrievanceDetailEditor({ grievance, onSave, isSaving }) {
 }
 
 const AdvocateGrievancesPage = () => {
+  const { success: showSuccessToast, error: showErrorToast } = useToast()
   const [filtersDraft, setFiltersDraft] = useState(defaultFilters)
   const [filters, setFilters] = useState(defaultFilters)
   const [selectedGrievanceId, setSelectedGrievanceId] = useState('')
-  const [notice, setNotice] = useState(null)
 
   const grievancesQuery = useAdvocateGrievancesQuery(filters)
   const updateGrievanceMutation = useUpdateAdvocateGrievanceMutation()
@@ -142,6 +143,11 @@ const AdvocateGrievancesPage = () => {
     selectedGrievanceId && grievanceItems.some((item) => item.id === selectedGrievanceId)
       ? selectedGrievanceId
       : grievanceItems[0]?.id || ''
+
+  const selectedListGrievance = useMemo(
+    () => grievanceItems.find((item) => item.id === effectiveSelectedId) || null,
+    [grievanceItems, effectiveSelectedId]
+  )
 
   const grievanceDetailQuery = useAdvocateGrievanceQuery(effectiveSelectedId)
 
@@ -169,14 +175,16 @@ const AdvocateGrievancesPage = () => {
     }))
   }
 
-  const selectedGrievance = grievanceDetailQuery.data || null
+  const selectedGrievance =
+    grievanceDetailQuery.data?.grievance || grievanceDetailQuery.data || selectedListGrievance
+
+  const isDetailLoading = grievanceDetailQuery.isLoading && !selectedListGrievance
+  const isDetailError = grievanceDetailQuery.isError && !selectedListGrievance
 
   const onSaveDetail = (payload) => {
     if (!effectiveSelectedId) {
       return
     }
-
-    setNotice(null)
 
     updateGrievanceMutation.mutate(
       {
@@ -185,10 +193,10 @@ const AdvocateGrievancesPage = () => {
       },
       {
         onSuccess: () => {
-          setNotice({ type: 'success', message: 'Grievance updated successfully.' })
+          showSuccessToast('Grievance updated successfully.')
         },
         onError: (error) => {
-          setNotice({ type: 'error', message: parseApiError(error) })
+          showErrorToast(parseApiError(error))
         },
       }
     )
@@ -215,18 +223,6 @@ const AdvocateGrievancesPage = () => {
           </Button>
         }
       />
-
-      {notice ? (
-        <p
-          className={`rounded-xl border px-4 py-3 text-sm ${
-            notice.type === 'error'
-              ? 'border-brand-dark bg-brand-dark text-brand-light'
-              : 'border-brand-primary/35 bg-brand-light text-brand-darkest'
-          }`}
-        >
-          {notice.message}
-        </p>
-      ) : null}
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
         <WorkerSectionCard
@@ -369,9 +365,9 @@ const AdvocateGrievancesPage = () => {
             <p className="rounded-xl border border-brand-muted/35 bg-brand-light/70 p-3 text-sm text-brand-muted">
               Select a grievance from the list to open its detail view.
             </p>
-          ) : grievanceDetailQuery.isLoading ? (
+          ) : isDetailLoading ? (
             <p className="text-sm text-brand-muted">Loading grievance details...</p>
-          ) : grievanceDetailQuery.isError ? (
+          ) : isDetailError ? (
             <p className="text-sm text-brand-muted">{parseApiError(grievanceDetailQuery.error)}</p>
           ) : selectedGrievance ? (
             <GrievanceDetailEditor

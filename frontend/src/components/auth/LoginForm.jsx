@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { fieldVariant, fieldContainerVariant } from './motionVariants';
 import { useSignIn } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/useToast';
 
 const loginSchema = z.object({
   email: z.string().email('Invalid email'),
@@ -15,6 +16,7 @@ const loginSchema = z.object({
 
 export function LoginForm() {
   const signIn = useSignIn();
+  const { error: showErrorToast } = useToast();
   const { register, handleSubmit, formState: { errors } } = useForm({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -30,8 +32,12 @@ export function LoginForm() {
     });
   };
 
+  const onInvalid = () => {
+    showErrorToast('Please fix the highlighted sign-in fields.');
+  };
+
   return (
-    <form onSubmit={handleSubmit(onSubmit)} autoComplete="off">
+    <form onSubmit={handleSubmit(onSubmit, onInvalid)} autoComplete="off">
       <motion.div variants={fieldContainerVariant} initial="hidden" animate="visible" className="flex flex-col gap-4">
         <motion.div variants={fieldVariant}>
           <Label>E-mail</Label>

@@ -3,10 +3,10 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 
-import WorkerNoticeBanner from '@/components/worker/WorkerNoticeBanner'
 import WorkerPageHeader from '@/components/worker/WorkerPageHeader'
 import GrievanceFormCard from '@/components/worker/grievances/GrievanceFormCard'
 import GrievanceListCard from '@/components/worker/grievances/GrievanceListCard'
+import { useToast } from '@/hooks/useToast'
 import { createWorkerGrievance, listWorkerGrievances } from '@/api/worker'
 import { WORKER_PLATFORM_OPTIONS } from '@/features/worker/constants'
 import { grievanceFormSchema } from '@/features/worker/schemas'
@@ -18,8 +18,7 @@ import {
 
 const WorkerGrievancesPage = () => {
   const queryClient = useQueryClient()
-
-  const [notice, setNotice] = useState(null)
+  const { success: showSuccessToast, error: showErrorToast } = useToast()
 
   const {
     register,
@@ -64,6 +63,10 @@ const WorkerGrievancesPage = () => {
   )
 
   const createGrievanceMutation = useMutation({
+    meta: {
+      disableSuccessToast: true,
+      disableErrorToast: true,
+    },
     mutationFn: (payload) => createWorkerGrievance(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['worker-grievances'] })
@@ -73,15 +76,14 @@ const WorkerGrievancesPage = () => {
         description: '',
         tags: '',
       })
-      setNotice({ type: 'success', message: 'Grievance submitted successfully.' })
+      showSuccessToast('Grievance submitted successfully.')
     },
     onError: (error) => {
-      setNotice({ type: 'error', message: parseApiError(error) })
+      showErrorToast(parseApiError(error))
     },
   })
 
   const onCreateGrievance = handleSubmit((values) => {
-    setNotice(null)
     createGrievanceMutation.mutate({
       platform: values.platform,
       category: values.category,
@@ -98,8 +100,6 @@ const WorkerGrievancesPage = () => {
         description="Submit disputes with cleaner forms and monitor progression through open, escalated, and resolved stages."
         summary={`${openCount} open · ${escalatedCount} escalated · ${resolvedCount} resolved`}
       />
-
-      <WorkerNoticeBanner notice={notice} />
 
       <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <GrievanceFormCard

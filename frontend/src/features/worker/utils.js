@@ -1,25 +1,40 @@
 import { formatCurrency, formatDate, formatHourlyRate } from '@/utils/formatters'
+import { getApiErrorMessage } from '@/lib/apiError'
+
+const normalizePlatformKey = (platform) => String(platform || '').trim().toLowerCase().replace(/\s+/g, '')
+
+export const normalizePlatformName = (platform) => {
+  const key = normalizePlatformKey(platform)
+
+  if (key === 'uber') {
+    return 'Uber'
+  }
+
+  if (key === 'foodpanda') {
+    return 'FoodPanda'
+  }
+
+  if (key === 'bykea') {
+    return 'Bykea'
+  }
+
+  if (key === 'indrive') {
+    return 'inDrive'
+  }
+
+  if (key === 'careem') {
+    return 'Careem'
+  }
+
+  return String(platform || '').trim()
+}
 
 export const parseApiError = (error) => {
-  const detail = error?.response?.data?.detail
-
-  if (typeof detail === 'string' && detail.trim()) {
-    return detail
-  }
-
-  if (detail && typeof detail === 'object' && detail.message) {
-    return detail.message
-  }
-
-  if (error?.response?.data?.error) {
-    return error.response.data.error
-  }
-
-  return error?.message || 'Something went wrong while calling the backend.'
+  return getApiErrorMessage(error)
 }
 
 export const normalizeShiftPayload = (values) => ({
-  platform: values.platform,
+  platform: normalizePlatformName(values.platform),
   date: values.date,
   hours_worked: Number(values.hours_worked),
   gross_earned: Number(values.gross_earned),
@@ -71,39 +86,18 @@ export const parseTagsFromInput = (value) => {
     .filter(Boolean)
 }
 
-export const buildAnalyzePayload = (shiftItems, currentShift) => {
-  const verifiedHistory = shiftItems
-    .filter(
-      (item) =>
-        item?.status === 'verified' &&
-        item?.platform === currentShift.platform &&
-        item?.date !== currentShift.date
-    )
-    .slice(0, 30)
-    .map((item) => ({
-      date: item.date,
-      platform: item.platform,
-      gross_earned: Number(item.gross_earned || 0),
-      deductions: Number(item.deductions || 0),
-      net_received: Number(item.net_received || 0),
-    }))
+export const buildAnalyzePayload = (currentShift) => {
+  const normalizedCurrentPlatform = normalizePlatformName(currentShift.platform)
 
-  const payload = {
+  return {
     current_shift: {
       date: currentShift.date,
-      platform: currentShift.platform,
+      platform: normalizedCurrentPlatform,
       gross_earned: Number(currentShift.gross_earned || 0),
       deductions: Number(currentShift.deductions || 0),
       net_received: Number(currentShift.net_received || 0),
     },
-    platform: currentShift.platform,
   }
-
-  if (verifiedHistory.length > 0) {
-    payload.history = verifiedHistory
-  }
-
-  return payload
 }
 
 export const buildWorkerStats = (shiftItems) => {

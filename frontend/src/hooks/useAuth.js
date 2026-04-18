@@ -24,6 +24,9 @@ export function useSignIn() {
   const Maps = useNavigate()
 
   return useMutation({
+    meta: {
+      successMessage: 'Signed in successfully.',
+    },
     mutationFn: async (credentials) => {
       const response = await apiClient.post('/api/v1/auth/login', credentials)
       return response.data
@@ -40,6 +43,9 @@ export function useSignUp() {
   const navigate = useNavigate()
 
   return useMutation({
+    meta: {
+      successMessage: 'Account created. Please sign in.',
+    },
     mutationFn: async (userData) => {
       const response = await apiClient.post('/api/v1/auth/signup', userData)
       return response.data

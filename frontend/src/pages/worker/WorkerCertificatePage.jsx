@@ -4,16 +4,16 @@ import { useQuery } from '@tanstack/react-query'
 import useAuthStore from '@/store/authStore'
 import { getWorkerCertificate } from '@/api/worker'
 import { useMe } from '@/hooks/useAuth'
-import WorkerNoticeBanner from '@/components/worker/WorkerNoticeBanner'
 import WorkerPageHeader from '@/components/worker/WorkerPageHeader'
 import CertificateReportCard from '@/components/worker/certificate/CertificateReportCard'
+import { useToast } from '@/hooks/useToast'
 import { buildCertificatePrintHtml, parseApiError } from '@/features/worker/utils'
 
 const WorkerCertificatePage = () => {
   const storeProfile = useAuthStore((state) => state.profile)
   const { data: meData } = useMe()
+  const { success: showSuccessToast, error: showErrorToast } = useToast()
 
-  const [notice, setNotice] = useState(null)
   const [certificateFilters, setCertificateFilters] = useState({ from: '', to: '' })
 
   const profile = meData?.profile || storeProfile || null
@@ -43,7 +43,7 @@ const WorkerCertificatePage = () => {
 
   const onDownloadCertificateJson = () => {
     if (!certificate) {
-      setNotice({ type: 'error', message: 'Certificate data is not available yet.' })
+      showErrorToast('Certificate data is not available yet.')
       return
     }
 
@@ -60,7 +60,7 @@ const WorkerCertificatePage = () => {
 
   const onPrintCertificate = () => {
     if (!certificate) {
-      setNotice({ type: 'error', message: 'Load certificate data before printing.' })
+      showErrorToast('Load certificate data before printing.')
       return
     }
 
@@ -78,7 +78,7 @@ const WorkerCertificatePage = () => {
     const frameWindow = printFrame.contentWindow
     if (!frameWindow) {
       document.body.removeChild(printFrame)
-      setNotice({ type: 'error', message: 'Unable to initialize print view.' })
+      showErrorToast('Unable to initialize print view.')
       return
     }
 
@@ -112,18 +112,11 @@ const WorkerCertificatePage = () => {
         window.setTimeout(() => URL.revokeObjectURL(fallbackUrl), 30_000)
 
         if (!fallbackWindow) {
-          setNotice({
-            type: 'error',
-            message:
-              'Printing was blocked by the browser. Allow popups and try Print Certificate again.',
-          })
+          showErrorToast('Printing was blocked by the browser. Allow popups and try Print Certificate again.')
           return
         }
 
-        setNotice({
-          type: 'success',
-          message: 'Opened printable certificate in a new tab. Use browser Print from that tab.',
-        })
+        showSuccessToast('Opened printable certificate in a new tab. Use browser Print from that tab.')
       }
     }, 250)
   }
@@ -136,8 +129,6 @@ const WorkerCertificatePage = () => {
         description="Generate machine-readable exports and print-ready statements scoped to your selected date range."
         summary={`Active range: ${filterSummary}`}
       />
-
-      <WorkerNoticeBanner notice={notice} />
 
       <CertificateReportCard
         certificate={certificate}
