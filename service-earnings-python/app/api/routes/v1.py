@@ -84,7 +84,7 @@ def service_status():
             ],
             "notes": [
                 "JWT auth enforced for earnings mutations",
-                "Anomaly service integration intentionally skipped for now",
+                "Per-shift anomaly analysis lives in service-anomaly-python; earnings stores verifier anomaly_explanation on flag",
             ],
         }
     )

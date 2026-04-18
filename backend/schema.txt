@@ -109,3 +109,47 @@ author_id: (UUID) FK → profiles(id) — not returned in public comment API
 body: (Text)
 
 created_at: (Timestamp)
+
+TABLE 8: anomaly_runs (Anomaly service audit)
+
+id: (UUID) Primary Key
+
+created_at: (Timestamp)
+
+worker_id: (UUID) FK → profiles(id)
+
+shift_log_id: (UUID, optional) FK → earnings(id)
+
+triggered_by_user_id: (UUID, optional) FK → profiles(id)
+
+triggered_by_role: (Text)
+
+platform: (Text, optional)
+
+current_shift_date: (Date)
+
+ready: (Boolean) — false when insufficient verified history
+
+insufficient_reason: (Text, optional)
+
+is_anomaly: (Boolean, optional) — null when not ready
+
+explanation: (Text, optional)
+
+method: (Text, optional)
+
+data_source: (Text, optional)
+
+net_z_score, percent_drop: (Numbers, optional)
+
+is_net_anomaly: (Boolean, optional)
+
+deduction_share_z_score, current_deduction_ratio, mean_deduction_ratio: (Numbers, optional)
+
+is_deduction_anomaly: (Boolean, optional)
+
+history_count: (Integer)
+
+thresholds: (JSONB, optional)
+
+detail: (JSONB, optional)

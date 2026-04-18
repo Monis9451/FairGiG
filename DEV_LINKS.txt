@@ -83,7 +83,7 @@ BFF (Node → Python; same Bearer as `/api/v1/me`)
 All requests use the Node host (e.g. http://localhost:5000) + `Authorization: Bearer <access_token>`.
 
 - Earnings (proxied to FastAPI `/api/v1/...`): `/api/v1/earnings/status`, `/api/v1/earnings/shift-logs`, POST import-csv, PATCH `.../verification`, etc.
-- Anomaly: `/api/v1/anomaly/status` (and future `/api/v1/analyze` when implemented in Python).
+- Anomaly: `/api/v1/anomaly/status`, `POST /api/v1/anomaly/analyze`, `GET /api/v1/anomaly/runs` (proxied to Python). Apply `database/anomaly_runs.sql` in Supabase for persisted `run_id` rows.
 
 OpenAPI: tag **BFF Python** in `service-grievance-node/docs/openapi.yaml`; detailed request/response shapes still in Python `/docs` on 8000/8001.
 

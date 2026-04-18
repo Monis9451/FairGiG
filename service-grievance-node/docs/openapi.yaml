@@ -350,6 +350,95 @@ paths:
         "503":
           description: ANOMALY_SERVICE_URL not set
 
+  /api/v1/anomaly/analyze:
+    post:
+      tags: [BFF Python]
+      summary: Run anomaly detection (proxied)
+      description: |
+        Forwards to FastAPI POST /api/v1/analyze. Returns `data.ready`; when false, insufficient verified history
+        (unless `strict_history` is true, then HTTP 422). Includes net-income and deduction-share signals when ready.
+        Optional `shift_log_id` must match `worker_id`, date, and platform. Responses may include `run_id` when persisted.
+      operationId: bffAnomalyAnalyze
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [current_shift]
+              properties:
+                current_shift:
+                  type: object
+                history:
+                  type: array
+                  items:
+                    type: object
+                worker_id:
+                  type: string
+                  format: uuid
+                shift_log_id:
+                  type: string
+                  format: uuid
+                platform:
+                  type: string
+                history_days:
+                  type: integer
+                history_limit:
+                  type: integer
+                strict_history:
+                  type: boolean
+                  default: false
+      responses:
+        "200":
+          description: Envelope with analysis or insufficient-history payload
+        "401":
+          description: Missing or invalid token
+        "403":
+          description: Role or worker scope violation
+        "404":
+          description: shift_log_id not found
+        "422":
+          description: Validation error or strict_history insufficient history
+        "503":
+          description: ANOMALY_SERVICE_URL not set
+
+  /api/v1/anomaly/runs:
+    get:
+      tags: [BFF Python]
+      summary: List anomaly audit rows (proxied)
+      description: |
+        Forwards to FastAPI GET /api/v1/runs. Workers are scoped to self; staff may filter with `worker_id` or list recent rows.
+      operationId: bffAnomalyRuns
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: worker_id
+          schema:
+            type: string
+            format: uuid
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 25
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Envelope with items, limit, offset
+        "401":
+          description: Missing or invalid token
+        "403":
+          description: Workers may not query other workers
+        "503":
+          description: ANOMALY_SERVICE_URL not set
+
   /api/grievances:
     get:
       tags: [Grievances]
