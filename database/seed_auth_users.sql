@@ -1,6 +1,11 @@
 -- FairGiG — seed Auth users + profiles (run in Supabase SQL Editor, dev/staging only).
 -- Password for all three below: FairGigDev123!
 -- Change emails/passwords before any shared environment.
+--
+-- For email provider, auth.identities.provider_id must be the email address (not the user UUID),
+-- or password sign-in can return 500 "Database error querying schema".
+--
+-- Quick repair without re-seeding: jump to "REPAIR auth.identities" at the bottom of this file.
 
 create extension if not exists "pgcrypto";
 
@@ -87,7 +92,7 @@ values (
     'email', 'worker@fairgig.seed'
   ),
   'email',
-  '11111111-1111-1111-1111-111111111101',
+  'worker@fairgig.seed',
   now(),
   now(),
   now()
@@ -143,7 +148,7 @@ values (
     'email', 'verifier@fairgig.seed'
   ),
   'email',
-  '22222222-2222-2222-2222-222222222202',
+  'verifier@fairgig.seed',
   now(),
   now(),
   now()
@@ -199,7 +204,7 @@ values (
     'email', 'advocate@fairgig.seed'
   ),
   'email',
-  '33333333-3333-3333-3333-333333333303',
+  'advocate@fairgig.seed',
   now(),
   now(),
   now()
@@ -215,3 +220,29 @@ on conflict (id) do update set
   full_name = excluded.full_name,
   role = excluded.role,
   city_zone = excluded.city_zone;
+
+-- =============================================================================
+-- REPAIR auth.identities (run this block alone if users exist but login returns 500)
+-- =============================================================================
+-- Sets provider_id = email for email provider rows. Idempotent if already correct.
+
+update auth.identities i
+set provider_id = u.email
+from auth.users u
+where i.user_id = u.id
+  and i.provider = 'email'
+  and u.email in (
+    'worker@fairgig.seed',
+    'verifier@fairgig.seed',
+    'advocate@fairgig.seed'
+  );
+
+-- Optional: fix every email identity in the project (not only fairgig.seed).
+-- Uncomment if you use other seeded emails with the same bug:
+--
+-- update auth.identities i
+-- set provider_id = u.email
+-- from auth.users u
+-- where i.user_id = u.id
+--   and i.provider = 'email'
+--   and i.provider_id is distinct from u.email;

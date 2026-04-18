@@ -30,6 +30,8 @@ const openApiPath = path.join(__dirname, "docs", "openapi.yaml");
 let openApiDocument;
 try {
   openApiDocument = YAML.parse(fs.readFileSync(openApiPath, "utf8"));
+  const pathCount = Object.keys(openApiDocument.paths || {}).length;
+  console.log(`OpenAPI loaded: ${pathCount} paths from ${openApiPath}`);
 } catch (err) {
   console.warn("OpenAPI spec not loaded:", err.message);
   openApiDocument = {
@@ -205,6 +207,13 @@ app.get("/openapi.yaml", (_req, res) => {
 
 app.get("/openapi.json", (_req, res) => {
   res.json(openApiDocument);
+});
+
+// Avoid stale Swagger UI in the browser during local dev (friend sees new, you see old).
+app.use("/api-docs", (req, res, next) => {
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, private");
+  res.setHeader("Pragma", "no-cache");
+  next();
 });
 
 app.use(

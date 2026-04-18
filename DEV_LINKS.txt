@@ -53,7 +53,9 @@ Node (service-grievance-node), default PORT=5000:
 - Auth (Bearer = Supabase user access_token after sign-in):
   - GET http://localhost:5000/api/v1/me
   - GET http://localhost:5000/api/v1/verifier/ping  (role: verifier only)
-- Swagger UI:       http://localhost:5000/api-docs  (loads spec from repo: service-grievance-node/docs/openapi.yaml)
+- Swagger UI:       http://localhost:5000/api-docs
+- OpenAPI file:     `service-grievance-node/docs/openapi.yaml` (also served at `/openapi.yaml` and `/openapi.json`)
+- Node API examples: `/api/grievances`, `/api/analytics/...`, `/api/certificates/...` (see Swagger)
 
 Python — Earnings (service-earnings-python), default PORT=8000:
 - Swagger / docs:   http://localhost:8000/docs

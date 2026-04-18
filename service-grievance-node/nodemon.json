@@ -1,0 +1,4 @@
+{
+  "watch": ["server.js", "src", "docs/openapi.yaml"],
+  "ext": "js,mjs,cjs,json,yaml,yml"
+}
