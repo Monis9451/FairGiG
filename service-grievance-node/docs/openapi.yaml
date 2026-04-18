@@ -1,31 +1,40 @@
 openapi: 3.0.3
 info:
-  title: FairGiG Node API
+  title: FairGiG Grievance Node API
   description: |
-    Grievance / analytics / certificate service (Express). **Edit this file** in the repo; Swagger UI at `/api-docs` loads it on server start.
-  version: 0.1.0
+    Express service for grievances, analytics, and certificate endpoints.
+    Interactive docs are available at /api-docs.
+  version: 0.2.0
 
 servers:
   - url: http://localhost:5000
-    description: Local (override PORT in `.env` if needed)
+    description: Local
   - url: /
-    description: Same origin (Try it out uses current host)
+    description: Same-origin host
 
 tags:
   - name: System
-    description: Health and gateway checks
+    description: Service liveness and integration checks
+  - name: Documentation
+    description: OpenAPI document routes
   - name: Auth
     description: JWT (Supabase access token) + profiles
+  - name: Grievances
+    description: Grievance board CRUD and tagging
+  - name: Analytics
+    description: Benchmark and vulnerability metrics
+  - name: Certificates
+    description: Verified earnings certificate data
 
 paths:
   /:
     get:
       tags: [System]
-      summary: Root
+      summary: Root endpoint
       operationId: getRoot
       responses:
         "200":
-          description: Service is up
+          description: Service status
           content:
             application/json:
               schema:
@@ -34,11 +43,11 @@ paths:
   /health:
     get:
       tags: [System]
-      summary: Liveness
+      summary: Liveness check
       operationId: getHealth
       responses:
         "200":
-          description: OK
+          description: Service health status
           content:
             application/json:
               schema:
@@ -47,17 +56,41 @@ paths:
   /services/health:
     get:
       tags: [System]
-      summary: Downstream Python services (optional)
-      description: |
-        Probes `ANOMALY_SERVICE_URL` and `ANALYTICS_SERVICE_URL` `/health` when those env vars are set.
+      summary: Downstream health checks
       operationId: getServicesHealth
       responses:
         "200":
-          description: Probe results
+          description: Downstream probe status
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/EnvelopeServicesHealth"
+
+  /openapi.yaml:
+    get:
+      tags: [Documentation]
+      summary: Fetch OpenAPI YAML
+      operationId: getOpenApiYaml
+      responses:
+        "200":
+          description: YAML specification
+          content:
+            application/yaml:
+              schema:
+                type: string
+
+  /openapi.json:
+    get:
+      tags: [Documentation]
+      summary: Fetch OpenAPI JSON
+      operationId: getOpenApiJson
+      responses:
+        "200":
+          description: JSON specification
+          content:
+            application/json:
+              schema:
+                type: object
 
   /api/v1/me:
     get:
@@ -95,6 +128,259 @@ paths:
         "403":
           description: Wrong role or no profile
 
+  /api/grievances:
+    get:
+      tags: [Grievances]
+      summary: List grievances
+      operationId: listGrievances
+      parameters:
+        - in: query
+          name: worker_id
+          schema:
+            type: string
+        - in: query
+          name: platform
+          schema:
+            type: string
+        - in: query
+          name: category
+          schema:
+            type: string
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [open, escalated, resolved]
+        - in: query
+          name: tag
+          schema:
+            type: string
+        - in: query
+          name: search
+          schema:
+            type: string
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 50
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Grievances list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeGrievanceList"
+    post:
+      tags: [Grievances]
+      summary: Create grievance
+      operationId: createGrievance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [worker_id, platform, category, description]
+              properties:
+                worker_id:
+                  type: string
+                platform:
+                  type: string
+                category:
+                  type: string
+                description:
+                  type: string
+                status:
+                  type: string
+                  enum: [open, escalated, resolved]
+                tags:
+                  oneOf:
+                    - type: string
+                    - type: array
+                      items:
+                        type: string
+      responses:
+        "201":
+          description: Grievance created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeGrievance"
+
+  /api/grievances/{id}:
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: string
+    get:
+      tags: [Grievances]
+      summary: Get grievance by id
+      operationId: getGrievanceById
+      responses:
+        "200":
+          description: Grievance record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeGrievance"
+    patch:
+      tags: [Grievances]
+      summary: Update grievance
+      operationId: updateGrievance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                platform:
+                  type: string
+                category:
+                  type: string
+                description:
+                  type: string
+                status:
+                  type: string
+                  enum: [open, escalated, resolved]
+                tags:
+                  oneOf:
+                    - type: string
+                    - type: array
+                      items:
+                        type: string
+      responses:
+        "200":
+          description: Updated grievance
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeGrievance"
+    delete:
+      tags: [Grievances]
+      summary: Delete grievance
+      operationId: deleteGrievance
+      responses:
+        "200":
+          description: Delete confirmation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeDeleted"
+
+  /api/grievances/{id}/tags:
+    post:
+      tags: [Grievances]
+      summary: Add tags to grievance
+      operationId: addGrievanceTags
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tags]
+              properties:
+                tags:
+                  oneOf:
+                    - type: string
+                    - type: array
+                      items:
+                        type: string
+      responses:
+        "200":
+          description: Updated grievance with merged tags
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeGrievance"
+
+  /api/analytics/benchmarks/platform-city:
+    get:
+      tags: [Analytics]
+      summary: Benchmark pay for platform and city
+      operationId: getPlatformCityBenchmark
+      parameters:
+        - in: query
+          name: platform
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: city_zone
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Benchmark payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeBenchmark"
+
+  /api/analytics/vulnerability-flags:
+    get:
+      tags: [Analytics]
+      summary: Workers with month-on-month income drop
+      operationId: getVulnerabilityFlags
+      parameters:
+        - in: query
+          name: threshold
+          schema:
+            type: number
+            default: 20
+      responses:
+        "200":
+          description: Vulnerability flags list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeVulnerability"
+
+  /api/certificates/workers/{workerId}/verified-logs:
+    get:
+      tags: [Certificates]
+      summary: Verified logs for worker certificate
+      operationId: getWorkerCertificateLogs
+      parameters:
+        - in: path
+          name: workerId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: from
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: to
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Worker verified logs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnvelopeCertificate"
+
 components:
   securitySchemes:
     bearerAuth:
@@ -104,6 +390,30 @@ components:
       description: Supabase user access_token (not service_role)
 
   schemas:
+    Grievance:
+      type: object
+      properties:
+        id:
+          type: string
+        worker_id:
+          type: string
+        platform:
+          type: string
+        category:
+          type: string
+        description:
+          type: string
+        status:
+          type: string
+          enum: [open, escalated, resolved]
+        tags:
+          type: array
+          items:
+            type: string
+        created_at:
+          type: string
+          format: date-time
+
     EnvelopeMessage:
       type: object
       properties:
@@ -115,10 +425,9 @@ components:
           properties:
             message:
               type: string
-              example: FairGiG backend is running
+              example: FairGiG grievance node service is running
         error:
           nullable: true
-          example: null
 
     EnvelopeHealth:
       type: object
@@ -130,7 +439,7 @@ components:
           properties:
             service:
               type: string
-              example: fairgig-backend
+              example: fairgig-service-grievance-node
             status:
               type: string
               example: ok
@@ -159,7 +468,168 @@ components:
                     type: integer
             message:
               type: string
-              description: Present when no downstream URLs are configured
+        error:
+          nullable: true
+
+    EnvelopeGrievance:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            grievance:
+              $ref: "#/components/schemas/Grievance"
+        error:
+          nullable: true
+
+    EnvelopeGrievanceList:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/Grievance"
+            pagination:
+              type: object
+              properties:
+                limit:
+                  type: integer
+                offset:
+                  type: integer
+                count:
+                  type: integer
+        error:
+          nullable: true
+
+    EnvelopeDeleted:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            deleted:
+              type: boolean
+            id:
+              type: string
+        error:
+          nullable: true
+
+    EnvelopeBenchmark:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            platform:
+              type: string
+            city_zone:
+              type: string
+            metric:
+              type: string
+              example: median_hourly_pay
+            median_hourly_pay:
+              type: number
+            average_hourly_pay:
+              type: number
+            sample_size:
+              type: integer
+        error:
+          nullable: true
+
+    EnvelopeVulnerability:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            threshold_percentage:
+              type: number
+            count:
+              type: integer
+            workers:
+              type: array
+              items:
+                type: object
+                properties:
+                  worker_id:
+                    type: string
+                  worker_name:
+                    nullable: true
+                    type: string
+                  city_zone:
+                    nullable: true
+                    type: string
+                  previous_month:
+                    type: string
+                  current_month:
+                    type: string
+                  previous_month_income:
+                    type: number
+                  current_month_income:
+                    type: number
+                  drop_percentage:
+                    type: number
+        error:
+          nullable: true
+
+    EnvelopeCertificate:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            worker:
+              type: object
+              properties:
+                id:
+                  type: string
+                full_name:
+                  type: string
+                city_zone:
+                  type: string
+                role:
+                  type: string
+            filters:
+              type: object
+              properties:
+                from:
+                  nullable: true
+                  type: string
+                to:
+                  nullable: true
+                  type: string
+            summary:
+              type: object
+              properties:
+                total_verified_logs:
+                  type: integer
+                total_hours:
+                  type: number
+                total_gross:
+                  type: number
+                total_deductions:
+                  type: number
+                total_net:
+                  type: number
+            logs:
+              type: array
+              items:
+                type: object
         error:
           nullable: true
 

@@ -4,7 +4,6 @@ import helmet from "helmet";
 import rateLimit from "express-rate-limit";
 import hpp from "hpp";
 import axios from "axios";
-import dotenv from "dotenv";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
@@ -12,6 +11,10 @@ import { createRequire } from "module";
 import YAML from "yaml";
 
 import { attachProfile, requireAuth, requireRole } from "./src/middleware/auth.js";
+import { env } from "./src/config/env.js";
+import grievanceRoutes from "./src/routes/grievances.js";
+import analyticsRoutes from "./src/routes/analytics.js";
+import certificateRoutes from "./src/routes/certificates.js";
 
 const require = createRequire(import.meta.url);
 const swaggerUi = require("swagger-ui-express");
@@ -19,11 +22,9 @@ const swaggerUi = require("swagger-ui-express");
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-dotenv.config({ quiet: true });
-
 const app = express();
-const PORT = Number(process.env.PORT) || 5000;
-const NODE_ENV = process.env.NODE_ENV || "development";
+const PORT = env.port;
+const NODE_ENV = env.nodeEnv;
 
 const openApiPath = path.join(__dirname, "docs", "openapi.yaml");
 let openApiDocument;
@@ -38,47 +39,41 @@ try {
   };
 }
 
-const ALLOWED_ORIGINS = (process.env.CORS_ORIGIN || "http://localhost:5173")
-  .split(",")
-  .map((origin) => origin.trim())
-  .filter(Boolean);
+const ALLOWED_ORIGINS = new Set([
+  ...env.corsOrigins,
+  `http://localhost:${PORT}`,
+  `http://127.0.0.1:${PORT}`,
+]);
 
-const normalizeServiceUrl = (rawUrl) => {
-  if (!rawUrl) {
-    return null;
+const isLoopbackOrigin = (origin) => {
+  if (!origin) {
+    return false;
   }
 
   try {
-    const parsed = new URL(rawUrl);
-
-    if (!["http:", "https:"].includes(parsed.protocol)) {
-      return null;
-    }
-
-    parsed.username = "";
-    parsed.password = "";
-    return `${parsed.origin}${parsed.pathname.replace(/\/$/, "")}`;
+    const parsed = new URL(origin);
+    return ["localhost", "127.0.0.1"].includes(parsed.hostname);
   } catch {
-    return null;
+    return false;
   }
 };
 
 const downstreamServices = [
   {
     name: "anomaly-service",
-    baseUrl: normalizeServiceUrl(process.env.ANOMALY_SERVICE_URL),
+    baseUrl: env.anomalyServiceUrl,
   },
   {
-    name: "analytics-service",
-    baseUrl: normalizeServiceUrl(process.env.ANALYTICS_SERVICE_URL),
+    name: "earnings-service",
+    baseUrl: env.earningsServiceUrl,
   },
 ].filter((service) => Boolean(service.baseUrl));
 
 const httpClient = axios.create({
-  timeout: Number(process.env.AXIOS_TIMEOUT_MS) || 5000,
+  timeout: env.axiosTimeoutMs,
   headers: {
     Accept: "application/json",
-    "User-Agent": "fairgig-backend/1.0",
+    "User-Agent": "fairgig-service-grievance-node/1.0",
   },
 });
 
@@ -128,7 +123,12 @@ app.use(hpp());
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+      if (!origin || ALLOWED_ORIGINS.has(origin)) {
+        return callback(null, true);
+      }
+
+      // In development, allow loopback origins so Swagger and local tools can test quickly.
+      if (NODE_ENV !== "production" && isLoopbackOrigin(origin)) {
         return callback(null, true);
       }
 
@@ -146,7 +146,7 @@ app.use(express.urlencoded({ extended: false, limit: "100kb" }));
 app.get("/", (_req, res) => {
   res.status(200).json({
     success: true,
-    data: { message: "FairGiG backend is running" },
+    data: { message: "FairGiG grievance node service is running" },
     error: null,
   });
 });
@@ -154,7 +154,7 @@ app.get("/", (_req, res) => {
 app.get("/health", (_req, res) => {
   res.status(200).json({
     success: true,
-    data: { service: "fairgig-backend", status: "ok" },
+    data: { service: "fairgig-service-grievance-node", status: "ok" },
     error: null,
   });
 });
@@ -197,6 +197,14 @@ app.get("/services/health", async (_req, res, next) => {
   } catch (error) {
     return next(error);
   }
+});
+
+app.get("/openapi.yaml", (_req, res) => {
+  res.type("application/yaml").send(fs.readFileSync(openApiPath, "utf8"));
+});
+
+app.get("/openapi.json", (_req, res) => {
+  res.json(openApiDocument);
 });
 
 app.use(
@@ -242,6 +250,10 @@ app.get(
   }
 );
 
+app.use("/api/grievances", grievanceRoutes);
+app.use("/api/analytics", analyticsRoutes);
+app.use("/api/certificates", certificateRoutes);
+
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -259,13 +271,19 @@ app.use((err, _req, res, _next) => {
       ? "Internal server error"
       : err.message || "Internal server error";
 
-  res.status(statusCode).json({
+  const payload = {
     success: false,
     data: null,
     error: message,
-  });
+  };
+
+  if (err.details && NODE_ENV !== "production") {
+    payload.details = err.details;
+  }
+
+  res.status(statusCode).json(payload);
 });
 
 app.listen(PORT, () => {
-  console.log(`FairGiG backend listening on port ${PORT}`);
+  console.log(`FairGiG grievance service listening on port ${PORT}`);
 });
