@@ -1,10 +1,8 @@
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import useAuthStore from '@/store/authStore'
 import { useMe } from '@/hooks/useAuth'
-import AppShell from '@/components/layout/AppShell'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -57,9 +55,6 @@ const parseApiError = (error) => {
 
 const VerifierDashboard = () => {
   const queryClient = useQueryClient()
-  const navigate = useNavigate()
-
-  const clearAuth = useAuthStore((state) => state.clearAuth)
   const storeProfile = useAuthStore((state) => state.profile)
 
   const [notice, setNotice] = useState(null)
@@ -211,11 +206,6 @@ const VerifierDashboard = () => {
     }
   }, [shiftItems])
 
-  const handleLogout = () => {
-    clearAuth()
-    navigate('/login', { replace: true })
-  }
-
   const isRowBusy = (shiftLogId) => {
     const verifyBusy =
       verifyMutation.isPending && verifyMutation.variables?.shiftLogId === shiftLogId
@@ -305,12 +295,13 @@ const VerifierDashboard = () => {
   }
 
   return (
-    <AppShell
-      title="Verifier Dashboard"
-      subtitle="Review pending shift logs, flag anomalies, and monitor vulnerable workers."
-      profile={profile}
-      onLogout={handleLogout}
-    >
+    <div className="mx-auto w-full max-w-7xl px-0 sm:px-0">
+      <header className="mb-6 border-b border-brand-muted/50 pb-4">
+        <h1 className="text-xl font-extrabold tracking-tight text-brand-darkest sm:text-2xl">Verifier dashboard</h1>
+        <p className="mt-1 max-w-3xl text-sm leading-relaxed text-brand-muted sm:text-base">
+          Review pending shift logs, flag anomalies, and monitor vulnerable workers.
+        </p>
+      </header>
       <div className="space-y-6">
         {notice ? (
           <div
@@ -837,7 +828,7 @@ const VerifierDashboard = () => {
           </article>
         </section>
       </div>
-    </AppShell>
+    </div>
   )
 }
 

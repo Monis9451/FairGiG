@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -17,7 +16,6 @@ import {
 
 import useAuthStore from '@/store/authStore'
 import { useMe } from '@/hooks/useAuth'
-import AppShell from '@/components/layout/AppShell'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -220,9 +218,6 @@ const buildCertificatePrintHtml = (certificate) => {
 
 const WorkerDashboard = () => {
   const queryClient = useQueryClient()
-  const navigate = useNavigate()
-
-  const clearAuth = useAuthStore((state) => state.clearAuth)
   const storeProfile = useAuthStore((state) => state.profile)
 
   const [notice, setNotice] = useState(null)
@@ -464,11 +459,6 @@ const WorkerDashboard = () => {
       .slice(-20)
   }, [shiftItems, benchmarkQuery.data, selectedPlatform])
 
-  const handleLogout = () => {
-    clearAuth()
-    navigate('/login', { replace: true })
-  }
-
   const onCreateShift = handleSubmit((values) => {
     setNotice(null)
     createShiftMutation.mutate(normalizeShiftPayload(values))
@@ -599,12 +589,13 @@ const WorkerDashboard = () => {
   }
 
   return (
-    <AppShell
-      title="Worker Dashboard"
-      subtitle="Log shifts, run anomaly checks, track grievances, and access your certificate report."
-      profile={profile}
-      onLogout={handleLogout}
-    >
+    <div className="mx-auto w-full max-w-7xl px-0 sm:px-0">
+      <header className="mb-6 border-b border-brand-muted/50 pb-4">
+        <h1 className="text-xl font-extrabold tracking-tight text-brand-darkest sm:text-2xl">Worker dashboard</h1>
+        <p className="mt-1 max-w-3xl text-sm leading-relaxed text-brand-muted sm:text-base">
+          Log shifts, run anomaly checks, track grievances, and access your certificate report.
+        </p>
+      </header>
       <div className="space-y-6">
         {notice ? (
           <div
@@ -1210,7 +1201,7 @@ const WorkerDashboard = () => {
           )}
         </section>
       </div>
-    </AppShell>
+    </div>
   )
 }
 
