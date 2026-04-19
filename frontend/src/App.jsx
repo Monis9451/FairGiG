@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
+import LandingPage from './pages/LandingPage'
 import CommunityPage from './pages/community/CommunityPage'
 import ProtectedRoute from './components/ProtectedRoute'
 import { AppShellLayout } from './components/layout/AppShellLayout'
@@ -28,6 +29,10 @@ const App = () => {
       <ToastViewport />
 
       <Routes>
+        <Route
+          path="/"
+          element={redirectToDashboard ? <Navigate to={dashboardPath} replace /> : <LandingPage />}
+        />
         <Route
           path="/login"
           element={redirectToDashboard ? <Navigate to={dashboardPath} replace /> : <Login />}
@@ -64,7 +69,7 @@ const App = () => {
 
         <Route
           path="*"
-          element={<Navigate to={redirectToDashboard ? dashboardPath : '/login'} replace />}
+          element={<Navigate to={redirectToDashboard ? dashboardPath : '/'} replace />}
         />
       </Routes>
     </>
