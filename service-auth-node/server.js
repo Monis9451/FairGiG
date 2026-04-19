@@ -6,7 +6,6 @@ import hpp from "hpp";
 
 import { env } from "./src/config/env.js";
 import authRoutes from "./src/auth.routes.js";
-import { HttpError } from "./src/lib/http.js";
 
 const app = express();
 const NODE_ENV = env.nodeEnv;
@@ -30,7 +29,24 @@ const isLoopbackOrigin = (origin) => {
 };
 
 app.disable("x-powered-by");
-app.set("trust proxy", 1);
+app.set("trust proxy", true);
+
+/* Before rate limits / helmet so platform health checks always get a fast 200 (Railway, etc.). */
+app.get("/health", (_req, res) => {
+  res.status(200).json({
+    success: true,
+    data: { service: "fairgig-service-auth-node", status: "ok" },
+    error: null,
+  });
+});
+
+app.get("/", (_req, res) => {
+  res.status(200).json({
+    success: true,
+    data: { message: "FairGiG auth service is running" },
+    error: null,
+  });
+});
 
 app.use(
   helmet({
@@ -45,6 +61,7 @@ app.use(
     max: 300,
     standardHeaders: true,
     legacyHeaders: false,
+    skip: (req) => req.path === "/health" || req.path === "/",
     message: {
       success: false,
       data: null,
@@ -75,22 +92,6 @@ app.use(
 
 app.use(express.json({ limit: "100kb" }));
 app.use(express.urlencoded({ extended: false, limit: "100kb" }));
-
-app.get("/", (_req, res) => {
-  res.status(200).json({
-    success: true,
-    data: { message: "FairGiG auth service is running" },
-    error: null,
-  });
-});
-
-app.get("/health", (_req, res) => {
-  res.status(200).json({
-    success: true,
-    data: { service: "fairgig-service-auth-node", status: "ok" },
-    error: null,
-  });
-});
 
 app.use("/api/v1/auth", authRoutes);
 

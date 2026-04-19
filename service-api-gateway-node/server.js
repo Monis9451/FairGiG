@@ -140,7 +140,24 @@ httpClient.interceptors.response.use(
 );
 
 app.disable("x-powered-by");
-app.set("trust proxy", 1);
+app.set("trust proxy", true);
+
+/* Fast paths for load balancers (before helmet / rate limits). */
+app.get("/health", (_req, res) => {
+  res.status(200).json({
+    success: true,
+    data: { service: "fairgig-service-api-gateway-node", status: "ok" },
+    error: null,
+  });
+});
+
+app.get("/", (_req, res) => {
+  res.status(200).json({
+    success: true,
+    data: { message: "FairGiG API gateway is running" },
+    error: null,
+  });
+});
 
 app.use(
   helmet({
@@ -162,6 +179,7 @@ app.use(
     max: 300,
     standardHeaders: true,
     legacyHeaders: false,
+    skip: (req) => req.path === "/health" || req.path === "/",
     message: {
       success: false,
       data: null,
@@ -248,22 +266,6 @@ if (inlineBundles) {
 
 app.use(express.json({ limit: "100kb" }));
 app.use(express.urlencoded({ extended: false, limit: "100kb" }));
-
-app.get("/", (_req, res) => {
-  res.status(200).json({
-    success: true,
-    data: { message: "FairGiG API gateway is running" },
-    error: null,
-  });
-});
-
-app.get("/health", (_req, res) => {
-  res.status(200).json({
-    success: true,
-    data: { service: "fairgig-service-api-gateway-node", status: "ok" },
-    error: null,
-  });
-});
 
 app.get("/services/health", async (_req, res, next) => {
   try {
