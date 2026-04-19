@@ -5,12 +5,12 @@ const VerifierStatsCards = ({ tiles, isLoading }) => {
   const skeletonCount = Math.max(tiles.length, 4)
 
   return (
-    <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+    <section className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6 xl:gap-3">
       {isLoading
         ? Array.from({ length: skeletonCount }).map((_, index) => (
             <div
               key={`verifier-stats-skeleton-${index}`}
-              className="rounded-lg border border-brand-darkest/10 bg-white p-4"
+              className="rounded-xl border border-brand-darkest/10 bg-white/95 p-3 sm:p-4"
             >
               <Skeleton className="h-3 w-20" />
               <Skeleton className="mt-3 h-8 w-14" />

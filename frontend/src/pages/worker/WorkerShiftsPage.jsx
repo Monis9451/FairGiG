@@ -21,6 +21,7 @@ import {
   parseApiError,
   shiftBadgeClassByStatus,
 } from '@/features/worker/utils'
+import { useMe } from '@/hooks/useAuth'
 import { useToast } from '@/hooks/useToast'
 
 const getTodayLocalDate = () => {
@@ -31,7 +32,8 @@ const getTodayLocalDate = () => {
 
 const WorkerShiftsPage = () => {
   const queryClient = useQueryClient()
-  const { success: showSuccessToast, error: showErrorToast } = useToast()
+  const { success: showSuccessToast, error: showErrorToast, info: showInfoToast } = useToast()
+  const { data: meData } = useMe()
 
   const [csvFile, setCsvFile] = useState(null)
   const [anomalyResult, setAnomalyResult] = useState(null)
@@ -90,14 +92,16 @@ const WorkerShiftsPage = () => {
   })
 
   const shiftItems = useMemo(() => shiftLogsQuery.data?.items ?? [], [shiftLogsQuery.data?.items])
-  const pendingCount = useMemo(
-    () => shiftItems.filter((item) => item.status === 'pending').length,
-    [shiftItems]
-  )
-  const verifiedCount = useMemo(
-    () => shiftItems.filter((item) => item.status === 'verified').length,
-    [shiftItems]
-  )
+  const summary = meData?.earnings_verification_summary
+  const pendingCount = useMemo(() => {
+    if (summary && typeof summary.pending === 'number') return summary.pending
+    return shiftItems.filter((item) => item.status === 'pending').length
+  }, [summary, shiftItems])
+  const verifiedCount = useMemo(() => {
+    if (summary && typeof summary.verified === 'number') return summary.verified
+    return shiftItems.filter((item) => item.status === 'verified').length
+  }, [summary, shiftItems])
+  const totalCount = summary?.total ?? shiftItems.length
 
   const analyzeMutation = useMutation({
     meta: {
@@ -139,6 +143,7 @@ const WorkerShiftsPage = () => {
     onSuccess: () => {
       showSuccessToast('Shift saved successfully.')
       queryClient.invalidateQueries({ queryKey: ['worker-shift-logs'] })
+      queryClient.invalidateQueries({ queryKey: ['me'] })
 
       // Do not auto-call anomaly here: it doubles latency and fails the whole flow with 502/504
       // if the anomaly service is down or slow. Workers can run pay comparison when needed.
@@ -169,6 +174,7 @@ const WorkerShiftsPage = () => {
     mutationFn: (file) => importWorkerShiftLogsCsv(file),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['worker-shift-logs'] })
+      queryClient.invalidateQueries({ queryKey: ['me'] })
       setCsvFile(null)
       showSuccessToast(`CSV import done: ${data?.inserted_rows || 0} rows inserted.`)
     },
@@ -287,7 +293,7 @@ const WorkerShiftsPage = () => {
           </p>
         </div>
         <p className="text-xs tabular-nums text-brand-muted sm:text-right">
-          <span className="font-semibold text-brand-darkest">{shiftItems.length}</span> total ·{' '}
+          <span className="font-semibold text-brand-darkest">{totalCount}</span> total ·{' '}
           <span className="font-semibold text-brand-darkest">{verifiedCount}</span> verified ·{' '}
           <span className="font-semibold text-brand-darkest">{pendingCount}</span> pending
         </p>

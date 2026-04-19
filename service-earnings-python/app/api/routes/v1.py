@@ -69,19 +69,59 @@ def _to_db_payload(worker_id: str, payload: ShiftLogPayload) -> dict:
     }
 
 
+def _auth_user_email(supabase, user_id: str) -> str | None:
+    admin = getattr(getattr(supabase, "auth", None), "admin", None)
+    getter = getattr(admin, "get_user_by_id", None) or getattr(admin, "getUserById", None)
+    if not callable(getter):
+        return None
+    try:
+        resp = getter(user_id)
+    except Exception:  # noqa: BLE001
+        return None
+    if resp is None:
+        return None
+    user = getattr(resp, "user", None)
+    if user is None and isinstance(resp, dict):
+        user = resp.get("user")
+    if user is None:
+        return None
+    raw = (
+        getattr(user, "email", None)
+        if not isinstance(user, dict)
+        else user.get("email")
+    )
+    email = str(raw or "").strip()
+    return email or None
+
+
 def _enrich_shift_logs_worker_profiles(supabase, items: list[dict]) -> list[dict]:
-    """Attach worker_full_name from public.profiles (id = worker_id)."""
+    """Attach worker_full_name (profiles) and worker_email (auth.users) for staff-friendly UI."""
     if not items:
         return items
     ids = list({str(row.get("worker_id")) for row in items if row.get("worker_id")})
     if not ids:
         return items
     prof = supabase.table("profiles").select("id, full_name").in_("id", ids).execute()
-    by_id: dict[str, str | None] = {}
+    by_name: dict[str, str | None] = {}
     for r in prof.data or []:
         name = (r.get("full_name") or "").strip()
-        by_id[str(r["id"])] = name or None
-    return [{**row, "worker_full_name": by_id.get(str(row.get("worker_id") or ""))} for row in items]
+        by_name[str(r["id"])] = name or None
+
+    by_email: dict[str, str | None] = {}
+    for uid in ids:
+        by_email[str(uid)] = _auth_user_email(supabase, str(uid))
+
+    out: list[dict] = []
+    for row in items:
+        wid = str(row.get("worker_id") or "")
+        out.append(
+            {
+                **row,
+                "worker_full_name": by_name.get(wid),
+                "worker_email": by_email.get(wid),
+            }
+        )
+    return out
 
 
 def _apply_shift_log_filters(q, auth: AuthContext, list_query: ShiftLogListQuery):

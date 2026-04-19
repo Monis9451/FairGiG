@@ -387,6 +387,22 @@ router.get(
 
       const profileMap = new Map((profiles || []).map((item) => [item.id, item]));
 
+      const emailEntries = await Promise.all(
+        workerIds.map(async (wid) => {
+          try {
+            const { data, error: authErr } = await supabase.auth.admin.getUserById(String(wid));
+            if (authErr || !data?.user?.email) {
+              return [String(wid), null];
+            }
+            const em = String(data.user.email || "").trim();
+            return [String(wid), em || null];
+          } catch {
+            return [String(wid), null];
+          }
+        })
+      );
+      const emailMap = new Map(emailEntries);
+
       enrichedFlags = rawFlags
         .map((item) => {
           const profile = profileMap.get(item.worker_id) || null;
@@ -394,6 +410,7 @@ router.get(
           return {
             ...item,
             worker_name: profile?.full_name || null,
+            worker_email: emailMap.get(String(item.worker_id)) ?? null,
             city_zone: profile?.city_zone || null,
           };
         })

@@ -189,7 +189,14 @@ export function StaffMonitoringHub() {
               <tbody>
                 {(vulnerabilityQuery.data?.workers ?? []).slice(0, 24).map((w) => (
                   <tr key={`${w.worker_id}-${w.current_month}`} className="border-b border-brand-light">
-                    <td className="py-2 pr-2 font-medium text-brand-darkest">{w.worker_name || w.worker_id}</td>
+                    <td className="py-2 pr-2">
+                      <p className="font-medium text-brand-darkest">
+                        {w.worker_name?.trim() || w.worker_email?.trim() || 'Worker account'}
+                      </p>
+                      {w.worker_email && w.worker_name?.trim() ? (
+                        <p className="text-xs text-brand-muted">{w.worker_email}</p>
+                      ) : null}
+                    </td>
                     <td className="py-2 pr-2 text-brand-muted">{w.city_zone || '—'}</td>
                     <td className="py-2 pr-2">{formatCurrency(w.previous_month_income)}</td>
                     <td className="py-2 pr-2">{formatCurrency(w.current_month_income)}</td>

@@ -1,16 +1,25 @@
-/** Shorten UUID for secondary display (full id still on row for copy tools). */
-export const shortWorkerId = (workerId) => {
-  if (!workerId) return ''
-  const s = String(workerId)
-  if (s.length <= 12) return s
-  return `${s.slice(0, 8)}…`
+/** Profile or analytics name field */
+export const workerNameFromItem = (item) => {
+  return String(item?.worker_full_name ?? item?.worker_name ?? '').trim()
 }
 
-/** Primary label: profile full name when present; otherwise a short id hint. */
+export const workerEmailFromItem = (item) => {
+  return String(item?.worker_email ?? '').trim()
+}
+
+/** Main heading: prefer name, then email — never a raw UUID. */
 export const workerPrimaryLabel = (item) => {
-  const name = item?.worker_full_name?.trim()
+  const name = workerNameFromItem(item)
   if (name) return name
-  const id = item?.worker_id
-  if (id) return `Worker ${shortWorkerId(id)}`
-  return 'Worker'
+  const email = workerEmailFromItem(item)
+  if (email) return email
+  return 'Worker account'
+}
+
+/** Second line when we already showed a name (e.g. show email under name). */
+export const workerSubtitle = (item) => {
+  const name = workerNameFromItem(item)
+  const email = workerEmailFromItem(item)
+  if (name && email) return email
+  return null
 }

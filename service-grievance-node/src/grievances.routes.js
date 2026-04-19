@@ -20,8 +20,8 @@ const mapGrievance = (grievance) => ({
   tags: normalizeTagsOutput(grievance?.tags),
 });
 
-/** Adds worker_full_name from public.profiles (same id as worker_id). */
-const withWorkerFullNames = async (supabase, items) => {
+/** Adds worker_full_name (profiles) and worker_email (auth admin) for staff UI. */
+const withWorkerContact = async (supabase, items) => {
   if (!Array.isArray(items) || items.length === 0) {
     return items;
   }
@@ -33,12 +33,30 @@ const withWorkerFullNames = async (supabase, items) => {
   if (error) {
     return items;
   }
-  const map = new Map(
+  const nameMap = new Map(
     (rows || []).map((r) => [String(r.id), ((r.full_name || "").trim() || null)])
   );
+
+  const emailEntries = await Promise.all(
+    ids.map(async (id) => {
+      try {
+        const { data, error: authErr } = await supabase.auth.admin.getUserById(String(id));
+        if (authErr || !data?.user?.email) {
+          return [String(id), null];
+        }
+        const em = String(data.user.email || "").trim();
+        return [String(id), em || null];
+      } catch {
+        return [String(id), null];
+      }
+    })
+  );
+  const emailMap = new Map(emailEntries);
+
   return items.map((item) => ({
     ...item,
-    worker_full_name: map.get(String(item.worker_id)) ?? null,
+    worker_full_name: nameMap.get(String(item.worker_id)) ?? null,
+    worker_email: emailMap.get(String(item.worker_id)) ?? null,
   }));
 };
 
@@ -110,7 +128,7 @@ router.post(
     }
 
     const mapped = mapGrievance(result.data);
-    const [grievance] = await withWorkerFullNames(supabase, [mapped]);
+    const [grievance] = await withWorkerContact(supabase, [mapped]);
 
     return res.status(201).json(
       success({
@@ -160,6 +178,27 @@ router.get(
       query = query.eq("status", status);
     }
 
+    let total = null;
+    if (!tag && !search) {
+      let countQuery = supabase.from("grievances").select("id", { count: "exact", head: true });
+      if (workerId) {
+        countQuery = countQuery.eq("worker_id", workerId);
+      }
+      if (platform) {
+        countQuery = countQuery.eq("platform", platform);
+      }
+      if (category) {
+        countQuery = countQuery.eq("category", category);
+      }
+      if (status) {
+        countQuery = countQuery.eq("status", status);
+      }
+      const { count, error: countError } = await countQuery;
+      if (!countError && typeof count === "number") {
+        total = count;
+      }
+    }
+
     const { data, error } = await query;
 
     if (error) {
@@ -182,7 +221,7 @@ router.get(
       });
     }
 
-    items = await withWorkerFullNames(supabase, items);
+    items = await withWorkerContact(supabase, items);
 
     return res.status(200).json(
       success({
@@ -191,6 +230,7 @@ router.get(
           limit,
           offset,
           count: items.length,
+          total,
         },
       })
     );
@@ -223,7 +263,7 @@ router.get(
     }
 
     const mapped = mapGrievance(data);
-    const [grievance] = await withWorkerFullNames(supabase, [mapped]);
+    const [grievance] = await withWorkerContact(supabase, [mapped]);
 
     return res.status(200).json(success({ grievance }));
   })
@@ -289,7 +329,7 @@ router.patch(
     }
 
     const mapped = mapGrievance(result.data);
-    const [grievance] = await withWorkerFullNames(supabase, [mapped]);
+    const [grievance] = await withWorkerContact(supabase, [mapped]);
 
     return res.status(200).json(success({ grievance }));
   })
@@ -353,7 +393,7 @@ router.post(
     }
 
     const mapped = mapGrievance(result.data);
-    const [grievance] = await withWorkerFullNames(supabase, [mapped]);
+    const [grievance] = await withWorkerContact(supabase, [mapped]);
 
     return res.status(200).json(success({ grievance }));
   })

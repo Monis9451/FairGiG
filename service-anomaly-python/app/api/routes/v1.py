@@ -36,6 +36,22 @@ def _as_date(value: Any) -> date:
     raise ValueError("invalid date value")
 
 
+def _normalize_platform_name(value: Any) -> str:
+    """Canonical platform label; matches frontend `normalizePlatformName`."""
+    key = str(value or "").strip().lower().replace(" ", "")
+    if key == "uber":
+        return "Uber"
+    if key == "foodpanda":
+        return "FoodPanda"
+    if key == "bykea":
+        return "Bykea"
+    if key == "indrive":
+        return "inDrive"
+    if key == "careem":
+        return "Careem"
+    return str(value or "").strip()
+
+
 def _load_verified_history_from_db(
     worker_id: str,
     platform: str | None,
@@ -47,6 +63,11 @@ def _load_verified_history_from_db(
 
     since_date = (current_date - timedelta(days=history_days)).isoformat()
 
+    platform_filter = (platform or "").strip()
+    fetch_limit = history_limit
+    if platform_filter:
+        fetch_limit = min(max(history_limit * 6, 180), 600)
+
     query = (
         supabase.table("earnings")
         .select("date, platform, gross_earned, deductions, net_received")
@@ -55,17 +76,18 @@ def _load_verified_history_from_db(
         .gte("date", since_date)
         .lt("date", current_date.isoformat())
         .order("date", desc=True)
-        .limit(history_limit)
+        .limit(fetch_limit)
     )
-
-    if platform:
-        query = query.eq("platform", platform)
 
     response = query.execute()
     rows = response.data or []
 
+    target_norm = _normalize_platform_name(platform_filter) if platform_filter else ""
+
     history: list[ShiftSample] = []
     for row in rows:
+        if platform_filter and _normalize_platform_name(row.get("platform")) != target_norm:
+            continue
         try:
             history.append(
                 ShiftSample(
@@ -78,6 +100,8 @@ def _load_verified_history_from_db(
             )
         except Exception:
             continue
+        if len(history) >= history_limit:
+            break
 
     return history
 

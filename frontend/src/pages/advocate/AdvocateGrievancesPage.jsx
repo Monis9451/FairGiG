@@ -14,6 +14,8 @@ import {
   useAdvocateGrievancesQuery,
   useUpdateAdvocateGrievanceMutation,
 } from '@/hooks/useAdvocateQueries'
+import WorkerContactBlock from '@/components/verifier/WorkerContactBlock'
+import { workerPrimaryLabel } from '@/features/verifier/workerDisplay'
 import { formatDate } from '@/utils/formatters'
 
 const defaultFilters = {
@@ -52,10 +54,8 @@ function GrievanceDetailEditor({ grievance, onSave, isSaving }) {
   return (
     <div className="space-y-4">
       <div className="rounded-xl border border-brand-muted/35 bg-brand-light/70 p-3 text-xs text-brand-muted">
-        <p>
-          <span className="font-semibold text-brand-darkest">Worker:</span> {grievance.worker_id}
-        </p>
-        <p className="mt-1">
+        <WorkerContactBlock item={grievance} />
+        <p className="mt-2">
           <span className="font-semibold text-brand-darkest">Created:</span> {formatDate(grievance.created_at)}
         </p>
       </div>
@@ -347,7 +347,7 @@ const AdvocateGrievancesPage = () => {
                     </div>
                     <p className="mt-1 line-clamp-2 text-xs text-brand-muted">{item.description}</p>
                     <p className="mt-2 text-[11px] text-brand-muted">
-                      {item.platform} • {formatDate(item.created_at)} • {item.worker_id}
+                      {item.platform} • {formatDate(item.created_at)} • {workerPrimaryLabel(item)}
                     </p>
                   </button>
                 )
