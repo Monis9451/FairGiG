@@ -75,7 +75,7 @@ const VerifierGrievancesPage = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <VerifierPageHeader
         badge="Disputes"
         title="Grievances"
@@ -84,7 +84,7 @@ const VerifierGrievancesPage = () => {
           <Button
             type="button"
             variant="outline"
-            className="h-11 gap-2 rounded-lg border-brand-darkest/15 bg-white px-4 text-sm font-semibold text-brand-darkest shadow-sm"
+            className="h-11 gap-2 rounded-xl border-brand-darkest/12 bg-white px-4 text-sm font-semibold text-brand-darkest shadow-sm"
             onClick={() => grievancesQuery.refetch()}
             disabled={grievancesQuery.isFetching}
           >
@@ -95,9 +95,10 @@ const VerifierGrievancesPage = () => {
       />
 
       <VerifierSectionCard
-        kicker="Filters & list"
-        title="Cases"
+        kicker="Triage"
+        title="Case list"
         description="Use worker ID, status, platform, category, tags, or free-text search."
+        className="ring-1 ring-brand-darkest/[0.06]"
       >
         <GrievanceFilters
           filters={grievanceFilterDraft}

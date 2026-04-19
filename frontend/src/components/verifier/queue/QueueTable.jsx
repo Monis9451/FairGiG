@@ -3,6 +3,7 @@ import { Image as ImageIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { workerPrimaryLabel } from '@/features/verifier/workerDisplay'
 import { badgeClassByStatus, parseApiError } from '@/features/verifier/utils'
 import { formatCurrency, formatDate } from '@/utils/formatters'
 
@@ -10,6 +11,7 @@ const actionRowClass = 'flex min-h-[2.75rem] flex-1 items-center justify-center 
 
 const QueueTable = ({
   items,
+  pagination,
   isLoading,
   isError,
   error,
@@ -122,6 +124,17 @@ const QueueTable = ({
         </p>
       ) : (
         <>
+          {pagination?.total != null ? (
+            <p className="mb-3 text-xs text-brand-muted">
+              Showing{' '}
+              <span className="font-medium text-brand-darkest tabular-nums">
+                {pagination.offset + 1}–{pagination.offset + items.length}
+              </span>{' '}
+              of{' '}
+              <span className="font-medium text-brand-darkest tabular-nums">{pagination.total}</span> matching
+              shifts
+            </p>
+          ) : null}
           <ul className="space-y-3 md:hidden">
             {items.map((item) => (
               <li
@@ -131,7 +144,10 @@ const QueueTable = ({
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
                     <p className="text-sm font-semibold text-brand-darkest">{formatDate(item.date)}</p>
-                    <p className="mt-0.5 font-mono text-[11px] text-brand-muted">{item.worker_id}</p>
+                    <p className="mt-0.5 text-sm font-medium text-brand-darkest">{workerPrimaryLabel(item)}</p>
+                    <p className="mt-0.5 font-mono text-[10px] text-brand-muted" title={item.worker_id}>
+                      {item.worker_id}
+                    </p>
                   </div>
                   <span
                     className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${badgeClassByStatus(item.status)}`}
@@ -189,7 +205,12 @@ const QueueTable = ({
                       }`}
                     >
                       <td className="px-3 py-3 text-brand-darkest">{formatDate(item.date)}</td>
-                      <td className="px-3 py-3 font-mono text-xs text-brand-darkest">{item.worker_id}</td>
+                      <td className="px-3 py-3">
+                        <p className="font-medium text-brand-darkest">{workerPrimaryLabel(item)}</p>
+                        <p className="mt-0.5 font-mono text-[10px] text-brand-muted" title={item.worker_id}>
+                          {item.worker_id}
+                        </p>
+                      </td>
                       <td className="px-3 py-3">{item.platform}</td>
                       <td className="px-3 py-3 tabular-nums">{Number(item.hours_worked || 0).toFixed(2)}</td>
                       <td className="px-3 py-3 tabular-nums font-medium">{formatCurrency(item.net_received)}</td>

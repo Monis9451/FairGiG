@@ -2,10 +2,23 @@ import axios from 'axios'
 import useAuthStore from '@/store/authStore'
 
 const authStore = useAuthStore
-const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000').replace(/\/+$/, '')
+
+/** Same host as the SPA in production (gateway serves / + /api). Dev defaults to gateway port 5000. */
+const resolveApiBaseUrl = () => {
+	const raw = import.meta.env.VITE_API_BASE_URL
+	if (raw !== undefined && String(raw).trim() !== '') {
+		return String(raw).replace(/\/+$/, '')
+	}
+	if (import.meta.env.DEV) {
+		return 'http://localhost:5000'
+	}
+	return ''
+}
+
+const API_BASE_URL = resolveApiBaseUrl()
 
 const apiClient = axios.create({
-	baseURL: API_BASE_URL,
+	baseURL: API_BASE_URL || undefined,
 })
 
 apiClient.interceptors.request.use((config) => {

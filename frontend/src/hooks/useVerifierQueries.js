@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import {
   getVerifierPing,
+  getVerifierShiftLogStatusCounts,
   getVerifierVulnerabilityFlags,
   listVerifierGrievances,
   listVerifierShiftLogs,
@@ -8,6 +9,7 @@ import {
 
 export const verifierQueryKeys = {
   ping: ['verifier-ping'],
+  shiftLogStatusCounts: ['verifier-shift-log-status-counts'],
   shiftLogs: (filters) => ['verifier-shift-logs', filters],
   vulnerabilityFlags: (threshold) => ['verifier-vulnerability-flags', threshold],
   grievances: (filters) => ['verifier-grievances', filters],
@@ -36,6 +38,15 @@ export const useVerifierShiftLogsQuery = (filters = {}, options = {}) => {
         offset: filters.offset ?? 0,
       }),
     staleTime: 20_000,
+    ...options,
+  })
+}
+
+export const useVerifierShiftLogStatusCountsQuery = (options = {}) => {
+  return useQuery({
+    queryKey: verifierQueryKeys.shiftLogStatusCounts,
+    queryFn: getVerifierShiftLogStatusCounts,
+    staleTime: 15_000,
     ...options,
   })
 }

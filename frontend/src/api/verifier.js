@@ -34,6 +34,12 @@ export const listVerifierShiftLogs = async ({
   return unwrapResponseData(response)
 }
 
+/** Staff-only: full counts per verification status across all shift logs. */
+export const getVerifierShiftLogStatusCounts = async () => {
+  const response = await apiClient.get('/api/v1/earnings/shift-logs/status-counts')
+  return unwrapResponseData(response)
+}
+
 export const updateVerifierShiftLogVerification = async ({
   shiftLogId,
   status,

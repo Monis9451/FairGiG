@@ -20,6 +20,28 @@ const mapGrievance = (grievance) => ({
   tags: normalizeTagsOutput(grievance?.tags),
 });
 
+/** Adds worker_full_name from public.profiles (same id as worker_id). */
+const withWorkerFullNames = async (supabase, items) => {
+  if (!Array.isArray(items) || items.length === 0) {
+    return items;
+  }
+  const ids = [...new Set(items.map((i) => i.worker_id).filter(Boolean))];
+  if (ids.length === 0) {
+    return items;
+  }
+  const { data: rows, error } = await supabase.from("profiles").select("id, full_name").in("id", ids);
+  if (error) {
+    return items;
+  }
+  const map = new Map(
+    (rows || []).map((r) => [String(r.id), ((r.full_name || "").trim() || null)])
+  );
+  return items.map((item) => ({
+    ...item,
+    worker_full_name: map.get(String(item.worker_id)) ?? null,
+  }));
+};
+
 const canFallbackToStringTags = (error) => {
   const message = `${error?.message || ""} ${error?.details || ""}`.toLowerCase();
   return message.includes("tags") && message.includes("type");
@@ -87,9 +109,12 @@ router.post(
       throw new HttpError(500, "Failed to create grievance.", result.error.message);
     }
 
+    const mapped = mapGrievance(result.data);
+    const [grievance] = await withWorkerFullNames(supabase, [mapped]);
+
     return res.status(201).json(
       success({
-        grievance: mapGrievance(result.data),
+        grievance,
       })
     );
   })
@@ -157,6 +182,8 @@ router.get(
       });
     }
 
+    items = await withWorkerFullNames(supabase, items);
+
     return res.status(200).json(
       success({
         items,
@@ -195,7 +222,10 @@ router.get(
       throw new HttpError(404, "Grievance not found.");
     }
 
-    return res.status(200).json(success({ grievance: mapGrievance(data) }));
+    const mapped = mapGrievance(data);
+    const [grievance] = await withWorkerFullNames(supabase, [mapped]);
+
+    return res.status(200).json(success({ grievance }));
   })
 );
 
@@ -258,7 +288,10 @@ router.patch(
       throw new HttpError(404, "Grievance not found.");
     }
 
-    return res.status(200).json(success({ grievance: mapGrievance(result.data) }));
+    const mapped = mapGrievance(result.data);
+    const [grievance] = await withWorkerFullNames(supabase, [mapped]);
+
+    return res.status(200).json(success({ grievance }));
   })
 );
 
@@ -319,7 +352,10 @@ router.post(
       throw new HttpError(500, "Failed to add tags.", result.error.message);
     }
 
-    return res.status(200).json(success({ grievance: mapGrievance(result.data) }));
+    const mapped = mapGrievance(result.data);
+    const [grievance] = await withWorkerFullNames(supabase, [mapped]);
+
+    return res.status(200).json(success({ grievance }));
   })
 );
 

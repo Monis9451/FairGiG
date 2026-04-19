@@ -4,7 +4,10 @@ const VerifierSectionCard = ({ id, kicker, title, description, actions, classNam
   return (
     <section
       id={id}
-      className={cn('rounded-xl border border-brand-darkest/10 bg-white p-4 shadow-sm sm:p-5', className)}
+      className={cn(
+        'rounded-2xl border border-brand-darkest/10 bg-white/90 p-4 shadow-[0_1px_0_rgba(46,57,68,0.05)] sm:p-5',
+        className
+      )}
     >
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">

@@ -6,6 +6,9 @@
 # (see deploy log "listening on ... :8080"). Do not define PORT in Variables unless it matches.
 #
 # https://docs.railway.com/deploy/config-as-code
+[build]
+buildCommand = "npm install && npm install --prefix frontend && npm run build --prefix frontend"
+
 [deploy]
 startCommand = "npm start"
 healthcheckPath = "/health"

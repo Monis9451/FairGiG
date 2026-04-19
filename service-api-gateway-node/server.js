@@ -22,7 +22,11 @@ import { downstreamNodeProxy } from "./src/middleware/downstreamNodeProxy.js";
 const jsonBodyLimited = express.json({ limit: "100kb" });
 
 const gatewayDir = path.dirname(fileURLToPath(import.meta.url));
-const monorepoAuthPackageJson = path.join(gatewayDir, "..", "service-auth-node", "package.json");
+const monorepoRoot = path.join(gatewayDir, "..");
+const frontendDist = path.join(monorepoRoot, "frontend", "dist");
+const spaIndexPath = path.join(frontendDist, "index.html");
+const spaReady = fs.existsSync(spaIndexPath);
+const monorepoAuthPackageJson = path.join(monorepoRoot, "service-auth-node", "package.json");
 
 if (env.inlineNodeServices && !fs.existsSync(monorepoAuthPackageJson)) {
   console.error(
@@ -68,6 +72,14 @@ const inlineBundles = env.inlineNodeServices
 if (env.inlineNodeServices) {
   console.log(
     "INLINE_NODE_SERVICES=1: auth, grievances, community, analytics, certificates are in-process"
+  );
+}
+
+if (spaReady) {
+  console.log(`[FairGiG] Serving web app + API from this process (static: ${frontendDist})`);
+} else {
+  console.log(
+    "[FairGiG] frontend/dist not found — API-only. Build SPA: npm install --prefix frontend && npm run build --prefix frontend"
   );
 }
 
@@ -167,7 +179,10 @@ app.get("/health", (_req, res) => {
   });
 });
 
-app.get("/", (_req, res) => {
+app.get("/", (req, res) => {
+  if (spaReady) {
+    return res.sendFile(spaIndexPath);
+  }
   res.status(200).json({
     success: true,
     data: { message: "FairGiG API gateway is running" },
@@ -431,6 +446,33 @@ app.get(
 );
 
 app.use("/api/uploads", ...dataRoutesAuth, uploadRoutes);
+
+if (spaReady) {
+  app.use(
+    express.static(frontendDist, {
+      index: false,
+      maxAge: NODE_ENV === "production" ? "1h" : 0,
+    })
+  );
+}
+
+app.use((req, res, next) => {
+  if (!spaReady || !["GET", "HEAD"].includes(req.method)) {
+    return next();
+  }
+  const p = req.path;
+  if (
+    p.startsWith("/api") ||
+    p === "/health" ||
+    p.startsWith("/api-docs") ||
+    p === "/openapi.yaml" ||
+    p === "/openapi.json" ||
+    p.startsWith("/services/")
+  ) {
+    return next();
+  }
+  return res.sendFile(spaIndexPath);
+});
 
 app.use((req, res) => {
   res.status(404).json({

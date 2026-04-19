@@ -23,7 +23,7 @@ const VerifierStatsCards = ({ tiles, isLoading }) => {
               <article
                 key={tile.label}
                 className={cn(
-                  'rounded-lg border bg-white px-3 py-3.5 sm:px-4',
+                  'rounded-xl border bg-white/95 px-3 py-3.5 shadow-[0_1px_0_rgba(46,57,68,0.05)] sm:px-4',
                   tile.emphasis ? 'border-brand-primary border-l-[3px] border-l-brand-primary' : 'border-brand-darkest/10'
                 )}
               >

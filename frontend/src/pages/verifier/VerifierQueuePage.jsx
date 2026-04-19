@@ -32,6 +32,7 @@ const VerifierQueuePage = () => {
 
   const refreshVerifierData = () => {
     queryClient.invalidateQueries({ queryKey: ['verifier-shift-logs'] })
+    queryClient.invalidateQueries({ queryKey: ['verifier-shift-log-status-counts'] })
     queryClient.invalidateQueries({ queryKey: ['verifier-vulnerability-flags'] })
   }
 
@@ -104,6 +105,7 @@ const VerifierQueuePage = () => {
   })
 
   const shiftItems = useMemo(() => shiftLogsQuery.data?.items ?? [], [shiftLogsQuery.data?.items])
+  const shiftPagination = shiftLogsQuery.data?.pagination
 
   const isRowBusy = (shiftLogId) => {
     const verifyBusy = verifyMutation.isPending && verifyMutation.variables?.shiftLogId === shiftLogId
@@ -195,6 +197,7 @@ const VerifierQueuePage = () => {
         />
         <QueueTable
           items={shiftItems}
+          pagination={shiftPagination}
           isLoading={shiftLogsQuery.isLoading}
           isError={shiftLogsQuery.isError}
           error={shiftLogsQuery.error}

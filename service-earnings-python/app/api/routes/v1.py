@@ -69,6 +69,42 @@ def _to_db_payload(worker_id: str, payload: ShiftLogPayload) -> dict:
     }
 
 
+def _enrich_shift_logs_worker_profiles(supabase, items: list[dict]) -> list[dict]:
+    """Attach worker_full_name from public.profiles (id = worker_id)."""
+    if not items:
+        return items
+    ids = list({str(row.get("worker_id")) for row in items if row.get("worker_id")})
+    if not ids:
+        return items
+    prof = supabase.table("profiles").select("id, full_name").in_("id", ids).execute()
+    by_id: dict[str, str | None] = {}
+    for r in prof.data or []:
+        name = (r.get("full_name") or "").strip()
+        by_id[str(r["id"])] = name or None
+    return [{**row, "worker_full_name": by_id.get(str(row.get("worker_id") or ""))} for row in items]
+
+
+def _apply_shift_log_filters(q, auth: AuthContext, list_query: ShiftLogListQuery):
+    if auth.role == "worker":
+        q = q.eq("worker_id", str(auth.user_id))
+    elif list_query.worker_id is not None:
+        q = q.eq("worker_id", str(list_query.worker_id))
+
+    if list_query.status is not None:
+        q = q.eq("status", list_query.status.value)
+
+    if list_query.platform:
+        q = q.eq("platform", list_query.platform)
+
+    if list_query.from_date:
+        q = q.gte("date", list_query.from_date.isoformat())
+
+    if list_query.to_date:
+        q = q.lte("date", list_query.to_date.isoformat())
+
+    return q
+
+
 @router.get("/status")
 def service_status():
     return _envelope(
@@ -81,6 +117,7 @@ def service_status():
                 "POST /v1/shift-logs",
                 "POST /v1/shift-logs/import-csv",
                 "PATCH /v1/shift-logs/{id}/verification",
+                "GET /v1/shift-logs/status-counts",
             ],
             "notes": [
                 "JWT auth enforced for earnings mutations",
@@ -112,44 +149,61 @@ def list_shift_logs(
     )
 
     supabase = get_supabase_client()
-    db_query = (
-        supabase.table("earnings")
-        .select(
-            "id, worker_id, platform, date, hours_worked, gross_earned, deductions, net_received, screenshot_url, status, anomaly_explanation, created_at"
-        )
-        .order("date", desc=True)
-        .range(query.offset, query.offset + query.limit - 1)
+    row_select = (
+        "id, worker_id, platform, date, hours_worked, gross_earned, deductions, net_received, "
+        "screenshot_url, status, anomaly_explanation, created_at"
     )
-
-    if auth.role == "worker":
-        db_query = db_query.eq("worker_id", str(auth.user_id))
-    elif query.worker_id is not None:
-        db_query = db_query.eq("worker_id", str(query.worker_id))
-
-    if query.status is not None:
-        db_query = db_query.eq("status", query.status.value)
-
-    if query.platform:
-        db_query = db_query.eq("platform", query.platform)
-
-    if query.from_date:
-        db_query = db_query.gte("date", query.from_date.isoformat())
-
-    if query.to_date:
-        db_query = db_query.lte("date", query.to_date.isoformat())
+    db_query = _apply_shift_log_filters(
+        supabase.table("earnings").select(row_select),
+        auth,
+        query,
+    ).order("date", desc=True).range(query.offset, query.offset + query.limit - 1)
 
     response = db_query.execute()
+    items = response.data or []
+
+    count_query = _apply_shift_log_filters(
+        supabase.table("earnings").select("id", count="exact"),
+        auth,
+        query,
+    )
+    count_response = count_query.execute()
+    total = getattr(count_response, "count", None)
+    if total is None:
+        total = len(items)
+
+    items = _enrich_shift_logs_worker_profiles(supabase, items)
 
     return _envelope(
         {
-            "items": response.data or [],
+            "items": items,
             "pagination": {
                 "limit": query.limit,
                 "offset": query.offset,
-                "count": len(response.data or []),
+                "count": len(items),
+                "total": total,
             },
         }
     )
+
+
+@router.get("/shift-logs/status-counts")
+def shift_log_status_counts(
+    _auth: AuthContext = Depends(require_role("verifier", "advocate", "analyst")),
+):
+    """Full-table counts per status (staff only)."""
+    supabase = get_supabase_client()
+    by_status: dict[str, int] = {}
+    for st in EarningStatus:
+        count_response = (
+            supabase.table("earnings")
+            .select("id", count="exact")
+            .eq("status", st.value)
+            .execute()
+        )
+        by_status[st.value] = int(getattr(count_response, "count", None) or 0)
+
+    return _envelope({"by_status": by_status})
 
 
 @router.get("/shift-logs/{shift_log_id}")
@@ -173,7 +227,8 @@ def get_shift_log(shift_log_id: UUID, auth: AuthContext = Depends(get_auth_conte
     if auth.role == "worker" and item.get("worker_id") != str(auth.user_id):
         raise HTTPException(status_code=403, detail="Workers can only view their own logs")
 
-    return _envelope({"shift_log": item})
+    enriched = _enrich_shift_logs_worker_profiles(supabase, [item])[0]
+    return _envelope({"shift_log": enriched})
 
 
 @router.post("/shift-logs")
@@ -210,7 +265,8 @@ def create_shift_log(
     if len(rows) == 0:
         raise HTTPException(status_code=500, detail="Failed to create shift log")
 
-    return _envelope({"shift_log": rows[0]})
+    enriched = _enrich_shift_logs_worker_profiles(supabase, [rows[0]])[0]
+    return _envelope({"shift_log": enriched})
 
 
 @router.post("/shift-logs/import-csv")
@@ -320,4 +376,5 @@ def update_shift_log_verification(
     if len(updated_rows) == 0:
         raise HTTPException(status_code=500, detail="Failed to update verification status")
 
-    return _envelope({"shift_log": updated_rows[0]})
+    enriched = _enrich_shift_logs_worker_profiles(supabase, [updated_rows[0]])[0]
+    return _envelope({"shift_log": enriched})
