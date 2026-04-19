@@ -462,8 +462,23 @@ app.use((err, _req, res, _next) => {
   res.status(statusCode).json(payload);
 });
 
+/*
+ * Railway: the public edge must forward to the same port the process binds to.
+ * Do not set PORT in Railway Variables (let the platform inject it). If you override PORT,
+ * Networking → Public port must match or every public URL returns 502 while /health can still pass internally.
+ */
 const LISTEN_HOST = process.env.HOST || "0.0.0.0";
 
-app.listen(PORT, LISTEN_HOST, () => {
+const server = app.listen(PORT, LISTEN_HOST, () => {
   console.log(`FairGiG API gateway listening on http://${LISTEN_HOST}:${PORT}`);
+  if (NODE_ENV === "production") {
+    console.log(
+      `[FairGiG] If public URL returns 502: set Railway Networking → Public port = ${PORT} (process.env.PORT=${process.env.PORT ?? "unset"}). Do not override PORT in Variables unless it matches.`
+    );
+  }
+});
+
+server.on("error", (err) => {
+  console.error("[FairGiG] Failed to bind HTTP server:", err);
+  process.exit(1);
 });

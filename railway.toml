@@ -1,5 +1,10 @@
 # FairGiG — one Node service with INLINE_NODE_SERVICES=1:
 # Railway → Service → Settings → Root Directory: empty (entire repo).
+#
+# If /health works in deploy logs but https://*.up.railway.app returns 502:
+# Service → Networking → Public Networking → set the exposed port to the SAME value as $PORT
+# (see deploy log "listening on ... :8080"). Do not define PORT in Variables unless it matches.
+#
 # https://docs.railway.com/deploy/config-as-code
 [deploy]
 startCommand = "npm start"
