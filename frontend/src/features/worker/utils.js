@@ -125,6 +125,46 @@ export const buildWorkerStats = (shiftItems) => {
   }
 }
 
+/** Sum net_received for shifts whose `date` falls in the rolling window (local midnight). */
+export const buildWorkerDashboardMetrics = (shiftItems) => {
+  const now = new Date()
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+  const weekStart = new Date(startOfToday)
+  weekStart.setDate(weekStart.getDate() - 6)
+  const monthStart = new Date(startOfToday)
+  monthStart.setDate(monthStart.getDate() - 29)
+
+  let weekNet = 0
+  let monthNet = 0
+
+  for (const item of shiftItems) {
+    const raw = item?.date
+    if (!raw) continue
+    const d = new Date(`${raw}T12:00:00`)
+    if (Number.isNaN(d.getTime())) continue
+    const net = Number(item.net_received)
+    if (!Number.isFinite(net)) continue
+    if (d >= weekStart && d <= now) weekNet += net
+    if (d >= monthStart && d <= now) monthNet += net
+  }
+
+  const sorted = [...shiftItems].sort((a, b) => {
+    const ta = new Date(`${a.date}T12:00:00`).getTime()
+    const tb = new Date(`${b.date}T12:00:00`).getTime()
+    return (Number.isNaN(tb) ? 0 : tb) - (Number.isNaN(ta) ? 0 : ta)
+  })
+
+  const recent = sorted.slice(0, 5)
+  const needsAttention = shiftItems.filter((i) => i.status === 'pending' || i.status === 'flagged').length
+
+  return {
+    weekNet: Number(weekNet.toFixed(2)),
+    monthNet: Number(monthNet.toFixed(2)),
+    recent,
+    needsAttention,
+  }
+}
+
 export const buildBenchmarkChartData = ({ shiftItems, selectedPlatform, benchmarkMedian }) => {
   return shiftItems
     .filter((item) => item.platform === selectedPlatform)

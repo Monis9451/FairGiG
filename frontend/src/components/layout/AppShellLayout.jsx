@@ -48,11 +48,11 @@ function useNavItems() {
 
   if (role === 'worker') {
     return [
-      { to: '/worker', label: 'Dashboard', end: true, icon: LayoutDashboard },
-      { to: '/worker/shifts', label: 'Shifts', end: true, icon: ClipboardCheck },
-      { to: '/worker/grievances', label: 'Grievances', end: true, icon: AlertTriangle },
-      { to: '/worker/certificate', label: 'Certificate', end: true, icon: FileCheck2 },
-      { to: '/worker/benchmark', label: 'Benchmark', end: true, icon: BarChart3 },
+      { to: '/worker', label: 'Home', end: true, icon: LayoutDashboard },
+      { to: '/worker/shifts', label: 'My shifts', end: true, icon: ClipboardCheck },
+      { to: '/worker/grievances', label: 'Report issue', end: true, icon: AlertTriangle },
+      { to: '/worker/certificate', label: 'Earnings letter', end: true, icon: FileCheck2 },
+      { to: '/worker/benchmark', label: 'Pay vs city', end: true, icon: BarChart3 },
       { to: '/community', label: 'Community', end: false, icon: MessageCircle },
     ]
   }
