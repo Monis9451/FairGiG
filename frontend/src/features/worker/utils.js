@@ -63,6 +63,14 @@ export const shiftBadgeClassByStatus = (status) => {
   return 'border-brand-muted/50 bg-brand-light text-brand-darkest'
 }
 
+/** Newest grievance first. */
+export const sortGrievancesNewestFirst = (items) =>
+  [...items].sort((a, b) => {
+    const ta = new Date(a.created_at).getTime()
+    const tb = new Date(b.created_at).getTime()
+    return (Number.isNaN(tb) ? 0 : tb) - (Number.isNaN(ta) ? 0 : ta)
+  })
+
 export const grievanceBadgeClassByStatus = (status) => {
   if (status === 'resolved') {
     return 'border-brand-primary/40 bg-brand-primary/20 text-brand-darkest'
@@ -128,6 +136,14 @@ export const buildWorkerStats = (shiftItems) => {
   }
 }
 
+/** Newest shift date first (for dashboards and lists). */
+export const sortShiftLogsNewestFirst = (shiftItems) =>
+  [...shiftItems].sort((a, b) => {
+    const ta = new Date(`${a.date}T12:00:00`).getTime()
+    const tb = new Date(`${b.date}T12:00:00`).getTime()
+    return (Number.isNaN(tb) ? 0 : tb) - (Number.isNaN(ta) ? 0 : ta)
+  })
+
 /** Sum net_received for shifts whose `date` falls in the rolling window (local midnight). */
 export const buildWorkerDashboardMetrics = (shiftItems) => {
   const now = new Date()
@@ -151,19 +167,11 @@ export const buildWorkerDashboardMetrics = (shiftItems) => {
     if (d >= monthStart && d <= now) monthNet += net
   }
 
-  const sorted = [...shiftItems].sort((a, b) => {
-    const ta = new Date(`${a.date}T12:00:00`).getTime()
-    const tb = new Date(`${b.date}T12:00:00`).getTime()
-    return (Number.isNaN(tb) ? 0 : tb) - (Number.isNaN(ta) ? 0 : ta)
-  })
-
-  const recent = sorted.slice(0, 5)
   const needsAttention = shiftItems.filter((i) => i.status === 'pending' || i.status === 'flagged').length
 
   return {
     weekNet: Number(weekNet.toFixed(2)),
     monthNet: Number(monthNet.toFixed(2)),
-    recent,
     needsAttention,
   }
 }

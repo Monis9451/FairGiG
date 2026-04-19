@@ -1,18 +1,7 @@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import WorkerSectionCard from '@/components/worker/WorkerSectionCard'
-
-const selectClassName =
-  'h-11 w-full rounded-xl border border-brand-primary/35 bg-brand-light/90 px-3 text-sm text-brand-darkest shadow-sm transition-all duration-200 focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/30'
-
-const inputClassName =
-  'h-11 rounded-xl border border-brand-primary/35 bg-brand-light/90 shadow-sm transition-all duration-200 focus:border-brand-primary focus:ring-brand-primary/30'
-
-const textAreaClassName =
-  'min-h-[130px] w-full rounded-xl border border-brand-primary/35 bg-brand-light/90 px-3 py-2 text-sm text-brand-darkest shadow-sm transition-all duration-200 focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/30'
-
-const errorClassName = 'mt-1.5 text-xs font-medium text-brand-dark'
+import { cn } from '@/lib/utils'
 
 const GrievanceFormCard = ({
   registerGrievance,
@@ -21,88 +10,115 @@ const GrievanceFormCard = ({
   platformOptions,
   createGrievancePending,
 }) => {
+  const fieldClass = (name) =>
+    cn(
+      'h-11 w-full rounded-lg border bg-white px-3 text-base text-brand-darkest sm:text-sm',
+      grievanceErrors[name]
+        ? 'border-red-400 focus-visible:ring-2 focus-visible:ring-red-400/40'
+        : 'border-brand-muted/40 focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/25'
+    )
+
+  const textAreaClass = cn(
+    'min-h-[140px] w-full rounded-lg border bg-white px-3 py-2 text-base text-brand-darkest sm:text-sm',
+    grievanceErrors.description
+      ? 'border-red-400 focus-visible:ring-2 focus-visible:ring-red-400/40'
+      : 'border-brand-muted/40 focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/25'
+  )
+
   return (
-    <WorkerSectionCard
-      kicker="Submission"
-      title="Create a Grievance"
-      description="Raise an issue with clear details so it can be reviewed and resolved faster."
-      contentClassName="space-y-5"
-    >
-      <form className="space-y-5" onSubmit={onCreateGrievance}>
-        <div className="rounded-2xl border border-brand-muted/35 bg-brand-light/70 p-4 sm:p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-muted">Core details</p>
+    <section className="rounded-2xl border border-brand-muted/25 bg-white p-4 shadow-sm sm:p-5">
+      <h2 className="text-lg font-semibold text-brand-darkest">New report</h2>
+      <p className="mt-1 text-sm text-brand-muted">
+        Clear details help advocates review your case faster. You can track status under &quot;My reports&quot;.
+      </p>
 
-          <div className="mt-3 grid gap-4 md:grid-cols-2">
-            <div>
-              <Label htmlFor="grievance_platform">Platform</Label>
-              <select
-                id="grievance_platform"
-                {...registerGrievance('platform')}
-                className={selectClassName}
-              >
-                {platformOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-              {grievanceErrors.platform ? (
-                <p className={errorClassName}>{grievanceErrors.platform.message}</p>
-              ) : null}
-            </div>
-
-            <div>
-              <Label htmlFor="grievance_category">Category</Label>
-              <Input
-                id="grievance_category"
-                placeholder="payment issue"
-                {...registerGrievance('category')}
-                className={inputClassName}
-              />
-              {grievanceErrors.category ? (
-                <p className={errorClassName}>{grievanceErrors.category.message}</p>
-              ) : null}
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-brand-muted/35 bg-brand-light/70 p-4 sm:p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-muted">Issue narrative</p>
-
-          <div className="mt-3">
-            <Label htmlFor="grievance_description">Description</Label>
-            <textarea
-              id="grievance_description"
-              rows={5}
-              className={textAreaClassName}
-              placeholder="Describe what happened and why this should be reviewed."
-              {...registerGrievance('description')}
-            />
-            {grievanceErrors.description ? (
-              <p className={errorClassName}>{grievanceErrors.description.message}</p>
+      <form className="mt-5 space-y-5" onSubmit={onCreateGrievance} noValidate>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="grievance_platform" className="text-xs font-medium text-brand-dark">
+              Platform
+            </Label>
+            <select
+              id="grievance_platform"
+              {...registerGrievance('platform')}
+              className={fieldClass('platform')}
+              aria-invalid={grievanceErrors.platform ? 'true' : 'false'}
+            >
+              {platformOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+            {grievanceErrors.platform ? (
+              <p className="text-xs font-medium text-red-600" role="alert">
+                {grievanceErrors.platform.message}
+              </p>
             ) : null}
           </div>
 
-          <div className="mt-4">
-            <Label htmlFor="grievance_tags">Tags (optional, comma separated)</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="grievance_category" className="text-xs font-medium text-brand-dark">
+              Type of issue
+            </Label>
             <Input
-              id="grievance_tags"
-              placeholder="late payout, deduction mismatch"
-              {...registerGrievance('tags')}
-              className={inputClassName}
+              id="grievance_category"
+              placeholder="e.g. late payment, wrong deduction"
+              {...registerGrievance('category')}
+              className={fieldClass('category')}
+              aria-invalid={grievanceErrors.category ? 'true' : 'false'}
             />
+            {grievanceErrors.category ? (
+              <p className="text-xs font-medium text-red-600" role="alert">
+                {grievanceErrors.category.message}
+              </p>
+            ) : null}
           </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="grievance_description" className="text-xs font-medium text-brand-dark">
+            What happened?
+          </Label>
+          <textarea
+            id="grievance_description"
+            rows={5}
+            className={textAreaClass}
+            placeholder="Dates, amounts, order or trip IDs if you have them — anything that helps someone understand the problem."
+            {...registerGrievance('description')}
+            aria-invalid={grievanceErrors.description ? 'true' : 'false'}
+          />
+          {grievanceErrors.description ? (
+            <p className="text-xs font-medium text-red-600" role="alert">
+              {grievanceErrors.description.message}
+            </p>
+          ) : (
+            <p className="text-xs text-brand-muted">At least a few sentences work best.</p>
+          )}
+        </div>
+
+        <div className="space-y-1.5">
+          <Label htmlFor="grievance_tags" className="text-xs font-medium text-brand-dark">
+            Tags <span className="font-normal text-brand-muted">(optional)</span>
+          </Label>
+          <Input
+            id="grievance_tags"
+            placeholder="e.g. payout, Karachi, week 12"
+            {...registerGrievance('tags')}
+            className={fieldClass('tags')}
+          />
+          <p className="text-xs text-brand-muted">Comma-separated keywords — helps filtering later.</p>
         </div>
 
         <Button
           type="submit"
-          className="inline-flex min-h-[44px] items-center rounded-xl border border-brand-primary bg-brand-primary px-4 py-2 text-sm font-semibold text-brand-light shadow-[0_10px_20px_rgba(18,78,102,0.2)] transition-all duration-200 hover:-translate-y-0.5 hover:opacity-95 disabled:translate-y-0 disabled:opacity-60"
+          className="h-12 w-full rounded-lg font-semibold sm:h-11 sm:w-auto sm:min-w-[160px]"
           disabled={createGrievancePending}
         >
-          {createGrievancePending ? 'Submitting...' : 'Submit Grievance'}
+          {createGrievancePending ? 'Sending…' : 'Submit report'}
         </Button>
       </form>
-    </WorkerSectionCard>
+    </section>
   )
 }
 

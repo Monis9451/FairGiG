@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   ArrowRight,
   BarChart3,
@@ -14,9 +14,17 @@ import { Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 
 import WorkerStatsCards from '@/components/worker/WorkerStatsCards'
+import SimplePagination from '@/components/ui/SimplePagination'
 import { listWorkerShiftLogs } from '@/api/worker'
 import { useMe } from '@/hooks/useAuth'
-import { buildWorkerDashboardMetrics, buildWorkerStats, normalizePlatformName, parseApiError, shiftBadgeClassByStatus } from '@/features/worker/utils'
+import {
+  buildWorkerDashboardMetrics,
+  buildWorkerStats,
+  normalizePlatformName,
+  parseApiError,
+  shiftBadgeClassByStatus,
+  sortShiftLogsNewestFirst,
+} from '@/features/worker/utils'
 import { formatCurrency, formatDate } from '@/utils/formatters'
 
 const greetingForHour = () => {
@@ -26,9 +34,12 @@ const greetingForHour = () => {
   return 'Good evening'
 }
 
+const RECENT_SHIFTS_PAGE_SIZE = 10
+
 const WorkerOverviewPage = () => {
   const { data: meData } = useMe()
   const profile = meData?.profile
+  const [recentPage, setRecentPage] = useState(1)
 
   const shiftLogsQuery = useQuery({
     queryKey: ['worker-shift-logs'],
@@ -39,6 +50,22 @@ const WorkerOverviewPage = () => {
   const shiftItems = useMemo(() => shiftLogsQuery.data?.items ?? [], [shiftLogsQuery.data?.items])
   const stats = useMemo(() => buildWorkerStats(shiftItems), [shiftItems])
   const metrics = useMemo(() => buildWorkerDashboardMetrics(shiftItems), [shiftItems])
+  const sortedShifts = useMemo(() => sortShiftLogsNewestFirst(shiftItems), [shiftItems])
+  const recentTotalPages = Math.max(1, Math.ceil(sortedShifts.length / RECENT_SHIFTS_PAGE_SIZE))
+  const recentPageSafe = Math.min(Math.max(1, recentPage), recentTotalPages)
+
+  useEffect(() => {
+    setRecentPage((p) => Math.min(Math.max(1, p), recentTotalPages))
+  }, [recentTotalPages])
+
+  const recentPageRows = useMemo(
+    () =>
+      sortedShifts.slice(
+        (recentPageSafe - 1) * RECENT_SHIFTS_PAGE_SIZE,
+        recentPageSafe * RECENT_SHIFTS_PAGE_SIZE
+      ),
+    [sortedShifts, recentPageSafe]
+  )
 
   const verificationSummary = meData?.earnings_verification_summary
   const firstName = profile?.full_name?.trim()?.split(/\s+/)[0] || 'there'
@@ -253,8 +280,8 @@ const WorkerOverviewPage = () => {
       <div className="rounded-3xl border border-brand-muted/35 bg-brand-light/90 p-4 shadow-[0_12px_32px_rgba(33,42,49,0.1)] sm:p-5">
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
-            <h2 className="text-sm font-bold uppercase tracking-wide text-brand-muted">Recent shifts</h2>
-            <p className="mt-1 text-xs text-brand-dark/75">Newest first — platform and status</p>
+            <h2 className="text-sm font-bold uppercase tracking-wide text-brand-muted">Latest submissions</h2>
+            <p className="mt-1 text-xs text-brand-dark/75">Newest first — 10 per page on mobile and desktop</p>
           </div>
           <Link
             to="/worker/shifts"
@@ -271,29 +298,42 @@ const WorkerOverviewPage = () => {
               <div key={i} className="h-14 animate-pulse rounded-xl bg-brand-muted/20" />
             ))}
           </div>
-        ) : metrics.recent.length === 0 ? (
+        ) : sortedShifts.length === 0 ? (
           <p className="mt-4 rounded-xl border border-dashed border-brand-muted/50 bg-brand-light/60 px-4 py-6 text-center text-sm text-brand-muted">
             No shifts saved yet. Start with &quot;Add today&apos;s shift&quot; above.
           </p>
         ) : (
-          <ul className="mt-4 divide-y divide-brand-muted/25 rounded-2xl border border-brand-muted/25 bg-brand-light/80">
-            {metrics.recent.map((row) => (
-              <li key={row.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-3 sm:px-4">
-                <div className="min-w-0">
-                  <p className="font-semibold text-brand-darkest">{formatDate(row.date)}</p>
-                  <p className="text-xs text-brand-muted">{normalizePlatformName(row.platform)}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold tabular-nums text-brand-darkest">{formatCurrency(row.net_received)}</span>
-                  <span
-                    className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${shiftBadgeClassByStatus(row.status)}`}
-                  >
-                    {row.status}
-                  </span>
-                </div>
-              </li>
-            ))}
-          </ul>
+          <div className="mt-4 space-y-3">
+            <ul className="divide-y divide-brand-muted/25 rounded-2xl border border-brand-muted/25 bg-brand-light/80">
+              {recentPageRows.map((row) => (
+                <li key={row.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-3 sm:px-4">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-brand-darkest">{formatDate(row.date)}</p>
+                    <p className="text-xs text-brand-muted">{normalizePlatformName(row.platform)}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold tabular-nums text-brand-darkest">
+                      {formatCurrency(row.net_received)}
+                    </span>
+                    <span
+                      className={`rounded-full border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${shiftBadgeClassByStatus(row.status)}`}
+                    >
+                      {row.status}
+                    </span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+            <SimplePagination
+              page={recentPageSafe}
+              totalPages={recentTotalPages}
+              totalItems={sortedShifts.length}
+              pageSize={RECENT_SHIFTS_PAGE_SIZE}
+              itemLabel="shifts"
+              onPrev={() => setRecentPage((p) => Math.max(1, p - 1))}
+              onNext={() => setRecentPage((p) => Math.min(recentTotalPages, p + 1))}
+            />
+          </div>
         )}
       </div>
     </div>

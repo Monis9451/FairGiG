@@ -1,15 +1,33 @@
+import { useEffect, useMemo, useState } from 'react'
+
+import SimplePagination from '@/components/ui/SimplePagination'
 import { Skeleton } from '@/components/ui/skeleton'
+import { sortShiftLogsNewestFirst } from '@/features/worker/utils'
 import { formatCurrency, formatDate } from '@/utils/formatters'
 
+const PAGE_SIZE = 10
+
 const ShiftLogsTable = ({ shiftLogsQuery, shiftItems, parseApiError, badgeClassByStatus }) => {
-  const rows = shiftItems.slice(0, 25)
+  const [page, setPage] = useState(1)
+  const sorted = useMemo(() => sortShiftLogsNewestFirst(shiftItems), [shiftItems])
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_SIZE))
+  const pageSafe = Math.min(Math.max(1, page), totalPages)
+
+  useEffect(() => {
+    setPage((p) => Math.min(Math.max(1, p), totalPages))
+  }, [totalPages])
+
+  const rows = useMemo(
+    () => sorted.slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE),
+    [sorted, pageSafe]
+  )
 
   return (
     <section className="rounded-2xl border border-brand-muted/25 bg-white p-4 shadow-sm sm:p-5">
       <h2 className="text-lg font-semibold text-brand-darkest">Your shifts</h2>
-      <p className="mt-1 text-sm text-brand-muted">Latest submissions and verification status.</p>
+      <p className="mt-1 text-sm text-brand-muted">Latest submissions and verification status — 10 per page.</p>
 
-      <div className="mt-4">
+      <div className="mt-4 space-y-3">
         {shiftLogsQuery.isLoading ? (
           <div className="space-y-2">
             <Skeleton className="h-11 w-full rounded-lg" />
@@ -21,7 +39,7 @@ const ShiftLogsTable = ({ shiftLogsQuery, shiftItems, parseApiError, badgeClassB
           <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-900">
             {parseApiError(shiftLogsQuery.error)}
           </p>
-        ) : rows.length === 0 ? (
+        ) : sorted.length === 0 ? (
           <p className="rounded-lg border border-dashed border-brand-muted/40 bg-brand-light/30 px-3 py-6 text-center text-sm text-brand-muted">
             No shifts yet. Add one above or import a CSV.
           </p>
@@ -57,7 +75,7 @@ const ShiftLogsTable = ({ shiftLogsQuery, shiftItems, parseApiError, badgeClassB
             </ul>
 
             <div className="hidden overflow-hidden rounded-xl border border-brand-muted/20 md:block">
-              <div className="max-h-[480px] overflow-auto">
+              <div className="max-h-[min(520px,70vh)] overflow-auto">
                 <table className="w-full min-w-[640px] border-collapse text-sm">
                   <thead className="sticky top-0 z-10 bg-brand-darkest text-brand-light">
                     <tr className="text-left text-xs uppercase tracking-wide">
@@ -99,6 +117,16 @@ const ShiftLogsTable = ({ shiftLogsQuery, shiftItems, parseApiError, badgeClassB
                 </table>
               </div>
             </div>
+
+            <SimplePagination
+              page={pageSafe}
+              totalPages={totalPages}
+              totalItems={sorted.length}
+              pageSize={PAGE_SIZE}
+              itemLabel="shifts"
+              onPrev={() => setPage((p) => Math.max(1, p - 1))}
+              onNext={() => setPage((p) => Math.min(totalPages, p + 1))}
+            />
           </>
         )}
       </div>
