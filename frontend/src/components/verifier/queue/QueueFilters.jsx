@@ -11,10 +11,10 @@ const QueueFilters = ({ filters, onChange, onApply, onReset }) => {
     <div className="rounded-lg border border-brand-darkest/10 bg-brand-light/30 p-4">
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <div>
-          <Label htmlFor="shift_filter_worker_id">Worker ID</Label>
+          <Label htmlFor="shift_filter_worker_id">Worker account</Label>
           <Input
             id="shift_filter_worker_id"
-            placeholder="worker uuid"
+            placeholder="UUID if filtering by account"
             value={filters.workerId}
             onChange={(event) => onChange('workerId', event.target.value)}
             className="mt-1.5 h-11 rounded-lg border-brand-darkest/15"

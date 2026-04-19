@@ -4,6 +4,7 @@ import { RefreshCw } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import VerifierPageHeader from '@/components/verifier/VerifierPageHeader'
+import VerifierPaginationBar from '@/components/verifier/VerifierPaginationBar'
 import VerifierSectionCard from '@/components/verifier/VerifierSectionCard'
 import GrievanceFilters from '@/components/verifier/grievances/GrievanceFilters'
 import GrievanceList from '@/components/verifier/grievances/GrievanceList'
@@ -27,8 +28,13 @@ const VerifierGrievancesPage = () => {
 
   const [grievanceFilterDraft, setGrievanceFilterDraft] = useState(defaultGrievanceFilters)
   const [grievanceFilters, setGrievanceFilters] = useState(defaultGrievanceFilters)
+  const [listPaging, setListPaging] = useState({ page: 0, pageSize: 15 })
 
-  const grievancesQuery = useVerifierGrievancesQuery(grievanceFilters)
+  const grievancesQuery = useVerifierGrievancesQuery({
+    ...grievanceFilters,
+    limit: listPaging.pageSize,
+    offset: listPaging.page * listPaging.pageSize,
+  })
 
   const updateStatusMutation = useMutation({
     meta: { disableSuccessToast: true, disableErrorToast: true },
@@ -47,7 +53,10 @@ const VerifierGrievancesPage = () => {
     [grievancesQuery.data?.items]
   )
 
+  const grievancePagination = grievancesQuery.data?.pagination
+
   const applyGrievanceFilters = () => {
+    setListPaging((p) => ({ ...p, page: 0 }))
     setGrievanceFilters({
       workerId: grievanceFilterDraft.workerId.trim(),
       status: grievanceFilterDraft.status,
@@ -61,6 +70,7 @@ const VerifierGrievancesPage = () => {
   const resetGrievanceFilters = () => {
     setGrievanceFilterDraft(defaultGrievanceFilters)
     setGrievanceFilters(defaultGrievanceFilters)
+    setListPaging((p) => ({ ...p, page: 0 }))
   }
 
   const updateDraftFilter = (field, value) => {
@@ -73,6 +83,14 @@ const VerifierGrievancesPage = () => {
   const handleSaveStatus = (grievanceId, status) => {
     updateStatusMutation.mutate({ grievanceId, status })
   }
+
+  const offset = listPaging.page * listPaging.pageSize
+  const goPrev = () => setListPaging((p) => ({ ...p, page: Math.max(0, p.page - 1) }))
+  const goNext = () => setListPaging((p) => ({ ...p, page: p.page + 1 }))
+  const onPageSizeChange = (pageSize) => setListPaging({ page: 0, pageSize })
+
+  const showPagination =
+    !grievancesQuery.isLoading && !grievancesQuery.isError && (grievanceItems.length > 0 || offset > 0)
 
   return (
     <div className="space-y-8">
@@ -97,7 +115,7 @@ const VerifierGrievancesPage = () => {
       <VerifierSectionCard
         kicker="Triage"
         title="Case list"
-        description="Use worker ID, status, platform, category, tags, or free-text search."
+        description="Use worker ID, status, platform, category, tags, or free-text search. Totals are exact unless tag or search filters are set."
         className="ring-1 ring-brand-darkest/[0.06]"
       >
         <GrievanceFilters
@@ -115,6 +133,19 @@ const VerifierGrievancesPage = () => {
           onSaveStatus={handleSaveStatus}
           updatingId={updateStatusMutation.isPending ? updateStatusMutation.variables?.grievanceId : null}
         />
+        {showPagination ? (
+          <VerifierPaginationBar
+            offset={offset}
+            limit={listPaging.pageSize}
+            total={grievancePagination?.total}
+            itemCount={grievanceItems.length}
+            isLoading={grievancesQuery.isFetching}
+            onPrev={goPrev}
+            onNext={goNext}
+            onPageSizeChange={onPageSizeChange}
+            pageSizeOptions={[10, 15, 25, 50]}
+          />
+        ) : null}
       </VerifierSectionCard>
     </div>
   )

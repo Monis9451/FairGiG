@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { GRIEVANCE_STATUS_OPTIONS } from '@/features/verifier/constants'
-import { workerPrimaryLabel } from '@/features/verifier/workerDisplay'
+import WorkerContactBlock from '@/components/verifier/WorkerContactBlock'
 import { badgeClassByStatus, parseApiError } from '@/features/verifier/utils'
 import { formatDate } from '@/utils/formatters'
 
@@ -32,10 +32,9 @@ const GrievanceCard = ({ item, onSaveStatus, updatingId }) => {
         <span aria-hidden="true">•</span>
         <span>{formatDate(item.created_at)}</span>
       </div>
-      <p className="mt-2 text-sm font-medium text-brand-darkest">{workerPrimaryLabel(item)}</p>
-      <p className="mt-0.5 font-mono text-[10px] text-brand-muted" title={item.worker_id}>
-        {item.worker_id}
-      </p>
+      <div className="mt-2">
+        <WorkerContactBlock item={item} />
+      </div>
 
       <div className="mt-4 border-t border-brand-darkest/10 pt-4">
         <p className="text-[11px] font-medium uppercase tracking-wide text-brand-muted">Update status</p>

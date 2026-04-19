@@ -11,12 +11,12 @@ const GrievanceFilters = ({ filters, onChange, onApply, onReset }) => {
     <div className="rounded-lg border border-brand-darkest/10 bg-brand-light/30 p-4">
       <div className="grid gap-4 md:grid-cols-2">
         <div>
-          <Label htmlFor="grievance_filter_worker_id">Worker ID</Label>
+          <Label htmlFor="grievance_filter_worker_id">Worker account</Label>
           <Input
             id="grievance_filter_worker_id"
             value={filters.workerId}
             onChange={(event) => onChange('workerId', event.target.value)}
-            placeholder="worker uuid"
+            placeholder="UUID if filtering by account"
             className="mt-1.5 h-11 rounded-lg border-brand-darkest/15"
           />
         </div>

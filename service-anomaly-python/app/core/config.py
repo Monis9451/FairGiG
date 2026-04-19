@@ -15,8 +15,8 @@ class Settings(BaseSettings):
     anomaly_percent_drop_threshold: float = 20.0
     anomaly_deduction_zscore_threshold: float = 2.0
     anomaly_min_history_points: int = 7
-    anomaly_history_days: int = 90
-    anomaly_history_limit: int = 120
+    anomaly_history_days: int = 365
+    anomaly_history_limit: int = 200
     anomaly_list_runs_max_limit: int = 100
 
 

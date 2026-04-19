@@ -4,6 +4,7 @@ import { RefreshCw } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import VerifierPageHeader from '@/components/verifier/VerifierPageHeader'
+import VerifierPaginationBar from '@/components/verifier/VerifierPaginationBar'
 import VerifierSectionCard from '@/components/verifier/VerifierSectionCard'
 import QueueFilters from '@/components/verifier/queue/QueueFilters'
 import QueueTable from '@/components/verifier/queue/QueueTable'
@@ -27,8 +28,13 @@ const VerifierQueuePage = () => {
   const [verificationNotes, setVerificationNotes] = useState({})
   const [shiftFilterDraft, setShiftFilterDraft] = useState(defaultShiftFilters)
   const [shiftFilters, setShiftFilters] = useState(defaultShiftFilters)
+  const [listPaging, setListPaging] = useState({ page: 0, pageSize: 25 })
 
-  const shiftLogsQuery = useVerifierShiftLogsQuery(shiftFilters)
+  const shiftLogsQuery = useVerifierShiftLogsQuery({
+    ...shiftFilters,
+    limit: listPaging.pageSize,
+    offset: listPaging.page * listPaging.pageSize,
+  })
 
   const refreshVerifierData = () => {
     queryClient.invalidateQueries({ queryKey: ['verifier-shift-logs'] })
@@ -143,6 +149,7 @@ const VerifierQueuePage = () => {
   }
 
   const applyShiftFilters = () => {
+    setListPaging((p) => ({ ...p, page: 0 }))
     setShiftFilters({
       workerId: shiftFilterDraft.workerId.trim(),
       status: shiftFilterDraft.status,
@@ -155,6 +162,7 @@ const VerifierQueuePage = () => {
   const resetShiftFilters = () => {
     setShiftFilterDraft(defaultShiftFilters)
     setShiftFilters(defaultShiftFilters)
+    setListPaging((p) => ({ ...p, page: 0 }))
   }
 
   const updateDraftFilter = (field, value) => {
@@ -164,8 +172,13 @@ const VerifierQueuePage = () => {
     }))
   }
 
+  const offset = listPaging.page * listPaging.pageSize
+  const goPrev = () => setListPaging((p) => ({ ...p, page: Math.max(0, p.page - 1) }))
+  const goNext = () => setListPaging((p) => ({ ...p, page: p.page + 1 }))
+  const onPageSizeChange = (pageSize) => setListPaging({ page: 0, pageSize })
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <VerifierPageHeader
         badge="Queue"
         title="Shift verification"
@@ -174,7 +187,7 @@ const VerifierQueuePage = () => {
           <Button
             type="button"
             variant="outline"
-            className="h-11 gap-2 rounded-lg border-brand-darkest/15 bg-white px-4 text-sm font-semibold text-brand-darkest shadow-sm"
+            className="h-11 gap-2 rounded-xl border-brand-darkest/12 bg-white px-4 text-sm font-semibold text-brand-darkest shadow-sm"
             onClick={() => shiftLogsQuery.refetch()}
             disabled={shiftLogsQuery.isFetching}
           >
@@ -185,9 +198,10 @@ const VerifierQueuePage = () => {
       />
 
       <VerifierSectionCard
-        kicker="Filters & results"
-        title="Shift logs"
-        description="Narrow by worker, status, platform, or dates, then review the list below."
+        kicker="Workflow"
+        title="Review list"
+        description="Filter the ledger, then use pagination to work in smaller batches."
+        className="ring-1 ring-brand-darkest/[0.06]"
       >
         <QueueFilters
           filters={shiftFilterDraft}
@@ -197,7 +211,6 @@ const VerifierQueuePage = () => {
         />
         <QueueTable
           items={shiftItems}
-          pagination={shiftPagination}
           isLoading={shiftLogsQuery.isLoading}
           isError={shiftLogsQuery.isError}
           error={shiftLogsQuery.error}
@@ -212,6 +225,16 @@ const VerifierQueuePage = () => {
           onFlag={handleFlag}
           onUnverifiable={handleUnverifiable}
           isRowBusy={isRowBusy}
+        />
+        <VerifierPaginationBar
+          offset={offset}
+          limit={listPaging.pageSize}
+          total={shiftPagination?.total}
+          itemCount={shiftItems.length}
+          isLoading={shiftLogsQuery.isFetching}
+          onPrev={goPrev}
+          onNext={goNext}
+          onPageSizeChange={onPageSizeChange}
         />
       </VerifierSectionCard>
     </div>
