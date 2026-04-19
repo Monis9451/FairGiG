@@ -7,6 +7,7 @@ import {
   FileText,
   MapPin,
   MessageCircle,
+  Percent,
   PlusCircle,
   ShieldAlert,
 } from 'lucide-react'
@@ -112,6 +113,14 @@ const WorkerOverviewPage = () => {
       title: 'Pay vs city',
       subtitle: 'Your hourly vs other riders',
       icon: BarChart3,
+      emphasis: 'card',
+      className: 'border-brand-muted/40 bg-brand-light text-brand-darkest shadow-md',
+    },
+    {
+      to: '/worker/commission',
+      title: 'Platform cuts',
+      subtitle: 'Fees vs gross over time',
+      icon: Percent,
       emphasis: 'card',
       className: 'border-brand-muted/40 bg-brand-light text-brand-darkest shadow-md',
     },

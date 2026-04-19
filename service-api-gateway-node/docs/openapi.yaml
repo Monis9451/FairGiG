@@ -819,6 +819,7 @@ paths:
       description: |
         **Worker role only.** Buckets by ISO week (Monday start) or calendar month: net, hours,
         effective hourly, and mean commission share (deductions/gross). Excludes `unverifiable` rows from sums.
+        Set `verified_only=1` to include only verified shift logs (matches staff commission-trend semantics).
       operationId: getWorkerEarningsTrends
       security:
         - bearerAuth: []
@@ -838,6 +839,13 @@ paths:
           name: platform
           schema:
             type: string
+        - in: query
+          name: verified_only
+          schema:
+            type: string
+            enum: ["0", "1"]
+            default: "0"
+          description: If `1`, only `verified` earnings rows are included.
       responses:
         "401":
           description: Missing or invalid token

@@ -82,6 +82,15 @@ const WorkerBenchmarkPage = () => {
           See how your verified hourly pay on each app compares to the middle of other riders in your city — plain
           numbers, not statistics jargon.
         </p>
+        <p className="mt-2 text-xs text-brand-muted">
+          Curious how much of your gross goes to fees over time?{' '}
+          <Link
+            to="/worker/commission"
+            className="font-semibold text-brand-primary underline-offset-2 hover:underline"
+          >
+            Platform cuts chart
+          </Link>
+        </p>
       </header>
 
       {(benchmarkQuery.isError || shiftLogsQuery.isError) && combinedError ? (

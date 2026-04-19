@@ -790,6 +790,7 @@ router.get(
     const lookbackMonths = parseBoundedInt(req.query.lookback_months, 18, { min: 1, max: 60 });
     const platformFilter = String(req.query.platform || "").trim();
     const workerId = String(req.authUser.id || "").trim();
+    const verifiedOnly = String(req.query.verified_only || "").trim() === "1";
 
     const fromDate = isoDateMonthsAgo(lookbackMonths);
 
@@ -803,6 +804,10 @@ router.get(
       .not("date", "is", null)
       .neq("status", "unverifiable")
       .limit(10_000);
+
+    if (verifiedOnly) {
+      query = query.eq("status", "verified");
+    }
 
     if (platformFilter) {
       query = query.eq("platform", platformFilter);
@@ -889,6 +894,7 @@ router.get(
         from_date: fromDate,
         lookback_months: lookbackMonths,
         platform_filter: platformFilter || null,
+        verified_only: verifiedOnly,
         granularity,
         series,
       })

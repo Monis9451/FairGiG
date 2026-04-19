@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   Menu,
   MessageCircle,
+  Percent,
   ShieldAlert,
   X,
 } from 'lucide-react'
@@ -53,6 +54,7 @@ function useNavItems() {
       { to: '/worker/grievances', label: 'Report issue', end: true, icon: AlertTriangle },
       { to: '/worker/certificate', label: 'Earnings letter', end: true, icon: FileCheck2 },
       { to: '/worker/benchmark', label: 'Pay vs city', end: true, icon: BarChart3 },
+      { to: '/worker/commission', label: 'Platform cuts', end: true, icon: Percent },
       { to: '/community', label: 'Community', end: false, icon: MessageCircle },
     ]
   }
