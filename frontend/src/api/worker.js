@@ -108,12 +108,14 @@ export const getWorkerEarningsTrends = async ({
   granularity = 'month',
   lookbackMonths = 18,
   platform,
+  verifiedOnly = false,
 } = {}) => {
   const response = await apiClient.get('/api/analytics/worker/earnings-trends', {
     params: {
       granularity,
       lookback_months: lookbackMonths,
       platform: platform || undefined,
+      verified_only: verifiedOnly ? '1' : undefined,
     },
   })
 
