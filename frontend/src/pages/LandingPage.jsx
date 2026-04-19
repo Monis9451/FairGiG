@@ -3,11 +3,14 @@ import {
   ArrowRight,
   BarChart3,
   Bike,
+  ChevronLeft,
+  ChevronRight,
   FileCheck2,
   ShieldCheck,
   Sparkles,
   Users,
 } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { cn } from '@/lib/utils'
@@ -72,7 +75,43 @@ const features = [
   },
 ]
 
+const companyLogos = [
+  { src: '/companies/careem-logo-vector.png', alt: 'Careem' },
+  { src: '/companies/download.png', alt: 'Company logo' },
+  { src: '/companies/fiverr-new3326.jpg', alt: 'Fiverr' },
+  { src: '/companies/freelancer.jpg', alt: 'Freelancer' },
+  { src: '/companies/images (1).png', alt: 'Partner company' },
+  { src: '/companies/images (2).png', alt: 'Partner company' },
+  { src: '/companies/images (3).png', alt: 'Partner company' },
+  { src: '/companies/images.jpg', alt: 'Partner company' },
+  { src: '/companies/images.png', alt: 'Partner company' },
+  { src: '/companies/Leopards-Logo.png', alt: 'Leopards' },
+  { src: '/companies/pandamart.png', alt: 'Pandamart' },
+  { src: '/companies/TCS_Pakistan_logo_(2024).png', alt: 'TCS Pakistan' },
+  { src: '/companies/Yango.png', alt: 'Yango' },
+]
+
 const LandingPage = () => {
+  const [activeLogoIndex, setActiveLogoIndex] = useState(0)
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setActiveLogoIndex((previousIndex) => (previousIndex + 1) % companyLogos.length)
+    }, 3200)
+
+    return () => window.clearInterval(timer)
+  }, [])
+
+  const showPreviousLogo = () => {
+    setActiveLogoIndex((previousIndex) =>
+      previousIndex === 0 ? companyLogos.length - 1 : previousIndex - 1
+    )
+  }
+
+  const showNextLogo = () => {
+    setActiveLogoIndex((previousIndex) => (previousIndex + 1) % companyLogos.length)
+  }
+
   return (
     <div className="min-h-screen overflow-x-hidden bg-brand-light text-brand-darkest">
       <header className="sticky top-0 z-50 border-b border-white/10 bg-brand-darkest/90 backdrop-blur-md">
@@ -167,6 +206,69 @@ const LandingPage = () => {
               <span className="hidden h-4 w-px bg-white/20 sm:block" aria-hidden />
               <span>Verified records · City benchmarks · Rider-first</span>
             </motion.div>
+          </div>
+        </section>
+
+        <section className="border-b border-brand-darkest/8 bg-white px-4 py-14 sm:px-6 sm:py-20">
+          <div className="mx-auto max-w-6xl">
+            <div className="mx-auto max-w-3xl text-center">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-brand-muted">Ecosystem</p>
+              <h2 className="mt-3 text-2xl font-bold text-brand-darkest sm:text-3xl">
+                Platforms workers rely on
+              </h2>
+              <p className="mt-3 text-sm leading-relaxed text-brand-muted sm:text-base">
+                FairGig supports records from the companies gig workers use every day.
+              </p>
+            </div>
+
+            <div className="relative mx-auto mt-10 max-w-3xl">
+              <div className="overflow-hidden rounded-3xl border border-brand-darkest/10 bg-gradient-to-br from-brand-primary/10 via-white to-brand-light p-4 shadow-sm sm:p-6">
+                <div className="flex min-h-[180px] items-center justify-center rounded-2xl bg-white/80 p-4 sm:min-h-[220px]">
+                  <img
+                    src={companyLogos[activeLogoIndex].src}
+                    alt={companyLogos[activeLogoIndex].alt}
+                    className="max-h-28 w-auto object-contain sm:max-h-36"
+                    loading="lazy"
+                  />
+                </div>
+                <p className="mt-4 text-center text-sm font-semibold text-brand-dark">
+                  {companyLogos[activeLogoIndex].alt}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={showPreviousLogo}
+                className="absolute left-2 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-brand-darkest/20 bg-white/90 text-brand-darkest shadow-sm transition-colors hover:bg-white sm:left-4"
+                aria-label="Show previous company logo"
+              >
+                <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+              </button>
+
+              <button
+                type="button"
+                onClick={showNextLogo}
+                className="absolute right-2 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-brand-darkest/20 bg-white/90 text-brand-darkest shadow-sm transition-colors hover:bg-white sm:right-4"
+                aria-label="Show next company logo"
+              >
+                <ChevronRight className="h-5 w-5" aria-hidden="true" />
+              </button>
+
+              <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+                {companyLogos.map((logo, index) => (
+                  <button
+                    key={`${logo.src}-${index}`}
+                    type="button"
+                    onClick={() => setActiveLogoIndex(index)}
+                    className={cn(
+                      'h-2.5 rounded-full transition-all',
+                      index === activeLogoIndex ? 'w-8 bg-brand-primary' : 'w-2.5 bg-brand-darkest/20 hover:bg-brand-darkest/35'
+                    )}
+                    aria-label={`Show ${logo.alt}`}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
         </section>
 
