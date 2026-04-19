@@ -3,14 +3,11 @@ import {
   ArrowRight,
   BarChart3,
   Bike,
-  ChevronLeft,
-  ChevronRight,
   FileCheck2,
   ShieldCheck,
   Sparkles,
   Users,
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import { cn } from '@/lib/utils'
@@ -91,27 +88,9 @@ const companyLogos = [
   { src: '/companies/Yango.png', alt: 'Yango' },
 ]
 
+const sliderLogos = [...companyLogos, ...companyLogos]
+
 const LandingPage = () => {
-  const [activeLogoIndex, setActiveLogoIndex] = useState(0)
-
-  useEffect(() => {
-    const timer = window.setInterval(() => {
-      setActiveLogoIndex((previousIndex) => (previousIndex + 1) % companyLogos.length)
-    }, 3200)
-
-    return () => window.clearInterval(timer)
-  }, [])
-
-  const showPreviousLogo = () => {
-    setActiveLogoIndex((previousIndex) =>
-      previousIndex === 0 ? companyLogos.length - 1 : previousIndex - 1
-    )
-  }
-
-  const showNextLogo = () => {
-    setActiveLogoIndex((previousIndex) => (previousIndex + 1) % companyLogos.length)
-  }
-
   return (
     <div className="min-h-screen overflow-x-hidden bg-brand-light text-brand-darkest">
       <header className="sticky top-0 z-50 border-b border-white/10 bg-brand-darkest/90 backdrop-blur-md">
@@ -209,65 +188,45 @@ const LandingPage = () => {
           </div>
         </section>
 
-        <section className="border-b border-brand-darkest/8 bg-white px-4 py-14 sm:px-6 sm:py-20">
-          <div className="mx-auto max-w-6xl">
-            <div className="mx-auto max-w-3xl text-center">
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-brand-muted">Ecosystem</p>
-              <h2 className="mt-3 text-2xl font-bold text-brand-darkest sm:text-3xl">
-                Platforms workers rely on
-              </h2>
-              <p className="mt-3 text-sm leading-relaxed text-brand-muted sm:text-base">
-                FairGig supports records from the companies gig workers use every day.
-              </p>
-            </div>
+        <section className="relative border-b border-brand-darkest/8 bg-[#040a16] py-10 sm:py-12">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_70%_80%_at_50%_0%,rgba(56,189,248,0.12),transparent_60%)]"
+          />
+          <div className="relative mx-auto max-w-6xl px-4 sm:px-6">
+            <p className="text-center text-xs font-bold uppercase tracking-[0.2em] text-white/60">
+              Companies Workers Already Serve
+            </p>
 
-            <div className="relative mx-auto mt-10 max-w-3xl">
-              <div className="overflow-hidden rounded-3xl border border-brand-darkest/10 bg-gradient-to-br from-brand-primary/10 via-white to-brand-light p-4 shadow-sm sm:p-6">
-                <div className="flex min-h-[180px] items-center justify-center rounded-2xl bg-white/80 p-4 sm:min-h-[220px]">
-                  <img
-                    src={companyLogos[activeLogoIndex].src}
-                    alt={companyLogos[activeLogoIndex].alt}
-                    className="max-h-28 w-auto object-contain sm:max-h-36"
-                    loading="lazy"
-                  />
-                </div>
-                <p className="mt-4 text-center text-sm font-semibold text-brand-dark">
-                  {companyLogos[activeLogoIndex].alt}
-                </p>
-              </div>
+            <div className="relative mt-6 overflow-hidden rounded-2xl border border-white/10 bg-[#02060f]/85 shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-[#02060f] to-transparent sm:w-24"
+              />
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-y-0 right-0 z-10 w-16 bg-gradient-to-l from-[#02060f] to-transparent sm:w-24"
+              />
 
-              <button
-                type="button"
-                onClick={showPreviousLogo}
-                className="absolute left-2 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-brand-darkest/20 bg-white/90 text-brand-darkest shadow-sm transition-colors hover:bg-white sm:left-4"
-                aria-label="Show previous company logo"
+              <motion.div
+                className="flex w-max items-center gap-4 py-5 pl-4 pr-4 sm:gap-6 sm:py-6 sm:pl-6 sm:pr-6"
+                animate={{ x: ['0%', '-50%'] }}
+                transition={{ duration: 34, ease: 'linear', repeat: Infinity }}
               >
-                <ChevronLeft className="h-5 w-5" aria-hidden="true" />
-              </button>
-
-              <button
-                type="button"
-                onClick={showNextLogo}
-                className="absolute right-2 top-1/2 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-brand-darkest/20 bg-white/90 text-brand-darkest shadow-sm transition-colors hover:bg-white sm:right-4"
-                aria-label="Show next company logo"
-              >
-                <ChevronRight className="h-5 w-5" aria-hidden="true" />
-              </button>
-
-              <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
-                {companyLogos.map((logo, index) => (
-                  <button
+                {sliderLogos.map((logo, index) => (
+                  <div
                     key={`${logo.src}-${index}`}
-                    type="button"
-                    onClick={() => setActiveLogoIndex(index)}
-                    className={cn(
-                      'h-2.5 rounded-full transition-all',
-                      index === activeLogoIndex ? 'w-8 bg-brand-primary' : 'w-2.5 bg-brand-darkest/20 hover:bg-brand-darkest/35'
-                    )}
-                    aria-label={`Show ${logo.alt}`}
-                  />
+                    className="flex h-16 min-w-[150px] items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] px-4 sm:min-w-[180px]"
+                  >
+                    <img
+                      src={logo.src}
+                      alt={logo.alt}
+                      className="max-h-8 w-auto object-contain opacity-90 sm:max-h-10"
+                      loading="lazy"
+                    />
+                  </div>
                 ))}
-              </div>
+              </motion.div>
             </div>
           </div>
         </section>
