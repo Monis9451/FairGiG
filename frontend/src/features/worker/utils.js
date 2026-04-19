@@ -197,75 +197,304 @@ const escapeHtml = (value) =>
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;')
 
+/** Brand-aligned print/PDF (browser Print → Save as PDF). */
 export const buildCertificatePrintHtml = (certificate) => {
   const worker = certificate?.worker || {}
   const summary = certificate?.summary || {}
   const filters = certificate?.filters || {}
   const logs = certificate?.logs || []
 
+  const periodFrom = filters.from ? formatDate(filters.from) : 'Start of records'
+  const periodTo = filters.to ? formatDate(filters.to) : 'Latest verified shift'
+  const issued = new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date())
+
   const rows = logs
     .map(
-      (item) => `
-        <tr>
+      (item, index) => `
+        <tr class="${index % 2 === 0 ? 'r-even' : 'r-odd'}">
           <td>${escapeHtml(formatDate(item.date))}</td>
           <td>${escapeHtml(item.platform)}</td>
-          <td>${escapeHtml(Number(item.hours_worked || 0).toFixed(2))}</td>
-          <td>${escapeHtml(formatCurrency(item.net_received))}</td>
-          <td>${escapeHtml(item.status)}</td>
+          <td class="num">${escapeHtml(Number(item.hours_worked || 0).toFixed(2))}</td>
+          <td class="num">${escapeHtml(formatCurrency(item.gross_earned))}</td>
+          <td class="num">${escapeHtml(formatCurrency(item.deductions))}</td>
+          <td class="num net">${escapeHtml(formatCurrency(item.net_received))}</td>
         </tr>
       `
     )
     .join('')
 
-  return `
-    <!doctype html>
-    <html>
-      <head>
-        <meta charset="utf-8" />
-        <title>FairGig Certificate</title>
-        <style>
-          body { font-family: Arial, sans-serif; color: #1f2937; margin: 24px; }
-          h1 { margin: 0 0 8px; }
-          p { margin: 4px 0; }
-          .meta { margin-bottom: 16px; }
-          .summary { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 16px 0; }
-          .card { border: 1px solid #cbd5e1; border-radius: 8px; padding: 10px; }
-          table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-          th, td { border: 1px solid #cbd5e1; padding: 8px; text-align: left; font-size: 12px; }
-          th { background: #f1f5f9; }
-        </style>
-      </head>
-      <body>
-        <h1>FairGig Verified Earnings Certificate</h1>
-        <div class="meta">
-          <p><strong>Worker:</strong> ${escapeHtml(worker.full_name || 'N/A')}</p>
-          <p><strong>Worker ID:</strong> ${escapeHtml(worker.id || 'N/A')}</p>
-          <p><strong>City:</strong> ${escapeHtml(worker.city_zone || 'N/A')}</p>
-          <p><strong>Filters:</strong> From ${escapeHtml(filters.from || 'Start')} to ${escapeHtml(filters.to || 'Now')}</p>
-        </div>
-
-        <div class="summary">
-          <div class="card"><strong>Verified Logs</strong><br/>${escapeHtml(summary.total_verified_logs || 0)}</div>
-          <div class="card"><strong>Total Hours</strong><br/>${escapeHtml(Number(summary.total_hours || 0).toFixed(2))}</div>
-          <div class="card"><strong>Total Gross</strong><br/>${escapeHtml(formatCurrency(summary.total_gross || 0))}</div>
-          <div class="card"><strong>Total Net</strong><br/>${escapeHtml(formatCurrency(summary.total_net || 0))}</div>
-        </div>
-
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Platform</th>
-              <th>Hours</th>
-              <th>Net</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rows || '<tr><td colspan="5">No verified logs found for selected range.</td></tr>'}
-          </tbody>
-        </table>
-      </body>
-    </html>
+  const stat = (label, value, strong) => `
+    <div class="stat ${strong ? 'stat-em' : ''}">
+      <p class="stat-label">${escapeHtml(label)}</p>
+      <p class="stat-value">${value}</p>
+    </div>
   `
+
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FairGig — Verified earnings statement</title>
+    <style>
+      :root {
+        --fg: #212A31;
+        --fg2: #2E3944;
+        --muted: #748D92;
+        --primary: #124E66;
+        --light: #D3D9D4;
+        --paper: #ffffff;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        color: var(--fg);
+        background: var(--light);
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .sheet {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 12px;
+      }
+      .paper {
+        background: var(--paper);
+        border: 1px solid rgba(18, 78, 102, 0.22);
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 12px 40px rgba(18, 78, 102, 0.12);
+      }
+      .hero {
+        background: var(--primary);
+        color: #fff;
+        padding: 22px 26px;
+      }
+      .hero-kicker {
+        margin: 0;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        opacity: 0.78;
+      }
+      .hero h1 {
+        margin: 8px 0 0;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 24px;
+        font-weight: 700;
+        line-height: 1.2;
+      }
+      .hero-lead {
+        margin: 12px 0 0;
+        font-size: 13px;
+        line-height: 1.5;
+        opacity: 0.92;
+        max-width: 52ch;
+      }
+      .body {
+        padding: 22px 26px 26px;
+      }
+      .identity {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        justify-content: space-between;
+        padding-bottom: 18px;
+        border-bottom: 1px solid rgba(116, 141, 146, 0.28);
+      }
+      .identity h2 {
+        margin: 4px 0 0;
+        font-size: 20px;
+      }
+      .muted { color: var(--muted); font-size: 12px; }
+      .mono { font-family: ui-monospace, monospace; color: var(--fg2); }
+      .period-box {
+        border: 1px solid rgba(18, 78, 102, 0.22);
+        background: rgba(18, 78, 102, 0.06);
+        border-radius: 8px;
+        padding: 10px 14px;
+        min-width: 200px;
+      }
+      .period-box .t { font-size: 11px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: 0.06em; }
+      .period-box .d { margin-top: 6px; font-size: 13px; color: var(--fg2); }
+      .period-box .i { margin-top: 10px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+      .stats-title {
+        margin: 20px 0 10px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+      }
+      .stat {
+        border: 1px solid rgba(116, 141, 146, 0.25);
+        background: rgba(211, 217, 212, 0.2);
+        border-radius: 8px;
+        padding: 10px 12px;
+      }
+      .stat-em {
+        border-color: rgba(18, 78, 102, 0.32);
+        background: rgba(18, 78, 102, 0.08);
+      }
+      .stat-label {
+        margin: 0;
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: var(--muted);
+      }
+      .stat-value {
+        margin: 6px 0 0;
+        font-size: 16px;
+        font-weight: 700;
+        color: var(--fg);
+      }
+      .stat-em .stat-value { color: var(--primary); }
+      .table-title {
+        margin: 22px 0 10px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: var(--muted);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 11px;
+      }
+      thead { display: table-header-group; }
+      th {
+        background: var(--fg);
+        color: var(--light);
+        text-align: left;
+        padding: 9px 8px;
+        font-size: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      td {
+        padding: 8px;
+        border-bottom: 1px solid rgba(116, 141, 146, 0.2);
+        color: var(--fg2);
+      }
+      .r-even { background: #fff; }
+      .r-odd { background: rgba(211, 217, 212, 0.14); }
+      .num { text-align: right; font-variant-numeric: tabular-nums; }
+      .net { font-weight: 700; color: var(--primary); }
+      .empty {
+        text-align: center;
+        padding: 28px 16px;
+        color: var(--muted);
+        border: 1px dashed rgba(116, 141, 146, 0.4);
+        border-radius: 8px;
+        background: rgba(211, 217, 212, 0.18);
+      }
+      footer {
+        margin-top: 20px;
+        padding-top: 14px;
+        border-top: 1px solid rgba(116, 141, 146, 0.25);
+        font-size: 10px;
+        line-height: 1.55;
+        color: var(--muted);
+      }
+      @page {
+        size: A4;
+        margin: 14mm;
+      }
+      @media print {
+        body { background: #fff; }
+        .sheet { padding: 0; max-width: none; }
+        .paper { box-shadow: none; border-radius: 0; border: none; }
+        tr { break-inside: avoid; page-break-inside: avoid; }
+      }
+      @media (max-width: 640px) {
+        .stats { grid-template-columns: 1fr 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="sheet">
+      <div class="paper">
+        <header class="hero">
+          <p class="hero-kicker">FairGig</p>
+          <h1>Verified earnings statement</h1>
+          <p class="hero-lead">
+            Official-style summary of <strong>verified</strong> platform shift earnings recorded in FairGig for the
+            worker and period below. Use Print → Save as PDF for a copy.
+          </p>
+        </header>
+        <div class="body">
+          <div class="identity">
+            <div>
+              <p class="muted" style="margin:0;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;font-size:10px;">Worker</p>
+              <h2>${escapeHtml(worker.full_name || '—')}</h2>
+              <p class="muted" style="margin:6px 0 0;">ID: <span class="mono">${escapeHtml(worker.id || '—')}</span></p>
+              ${
+                worker.city_zone
+                  ? `<p class="muted" style="margin:6px 0 0;">City / zone: ${escapeHtml(worker.city_zone)}</p>`
+                  : ''
+              }
+            </div>
+            <div class="period-box">
+              <p class="t">Period covered</p>
+              <p class="d">${escapeHtml(periodFrom)} — ${escapeHtml(periodTo)}</p>
+              <p class="i">Issued on</p>
+              <p class="d" style="margin-top:4px;font-weight:600;color:var(--fg);">${escapeHtml(issued)}</p>
+            </div>
+          </div>
+
+          <p class="stats-title">Totals (verified only)</p>
+          <div class="stats">
+            ${stat('Verified shifts', escapeHtml(String(summary.total_verified_logs ?? 0)), false)}
+            ${stat('Total hours', escapeHtml(Number(summary.total_hours || 0).toFixed(2)), false)}
+            ${stat('Total gross', escapeHtml(formatCurrency(summary.total_gross || 0)), false)}
+            ${stat('Total deductions', escapeHtml(formatCurrency(summary.total_deductions || 0)), false)}
+            ${stat('Total net paid', escapeHtml(formatCurrency(summary.total_net || 0)), true)}
+          </div>
+
+          <p class="table-title">Shift detail</p>
+          ${
+            logs.length === 0
+              ? '<div class="empty">No verified shifts in this date range.</div>'
+              : `<table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Platform</th>
+                <th class="num">Hours</th>
+                <th class="num">Gross</th>
+                <th class="num">Deductions</th>
+                <th class="num">Net</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>`
+          }
+
+          <footer>
+            <p>
+              This statement reflects verified earnings only. It is for your records and does not replace tax or legal
+              advice from a qualified professional. FairGig does not guarantee completeness for third-party platforms.
+            </p>
+          </footer>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>`
 }
