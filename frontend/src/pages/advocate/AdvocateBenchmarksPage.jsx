@@ -206,7 +206,7 @@ const AdvocateBenchmarksPage = () => {
                     <th className="px-3 py-2">City Zone</th>
                     <th className="px-3 py-2">Median Hourly</th>
                     <th className="px-3 py-2">Average Hourly</th>
-                    <th className="px-3 py-2">Sample Size</th>
+                    <th className="px-3 py-2">Riders (shifts)</th>
                     <th className="px-3 py-2">Status</th>
                   </tr>
                 </thead>
@@ -216,7 +216,11 @@ const AdvocateBenchmarksPage = () => {
                       <td className="px-3 py-2 font-medium text-brand-darkest">{row.city_zone}</td>
                       <td className="px-3 py-2">{row.success ? formatCurrency(row.median_hourly_pay) : '—'}</td>
                       <td className="px-3 py-2">{row.success ? formatCurrency(row.average_hourly_pay) : '—'}</td>
-                      <td className="px-3 py-2">{row.success ? row.sample_size : '—'}</td>
+                      <td className="px-3 py-2">
+                        {row.success
+                          ? `${row.sample_riders ?? row.sample_size ?? 0} (${row.sample_shifts ?? '—'})`
+                          : '—'}
+                      </td>
                       <td className="px-3 py-2 text-xs text-brand-muted">
                         {row.success ? 'Loaded' : row.error || 'Not available'}
                       </td>

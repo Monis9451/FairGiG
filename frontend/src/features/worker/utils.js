@@ -176,17 +176,42 @@ export const buildWorkerDashboardMetrics = (shiftItems) => {
   }
 }
 
+/** Overall net ÷ hours for verified shifts on this platform (matches city benchmark methodology). */
+export const computeVerifiedHourlyForPlatform = (shiftItems, selectedPlatform) => {
+  const target = normalizePlatformName(selectedPlatform)
+  let net = 0
+  let hours = 0
+
+  for (const item of shiftItems) {
+    if (item.status !== 'verified') continue
+    if (normalizePlatformName(item.platform) !== target) continue
+    const n = Number(item.net_received)
+    const h = Number(item.hours_worked)
+    if (!Number.isFinite(n) || !Number.isFinite(h) || h < 0.25 || h > 24 || n < 0) continue
+    net += n
+    hours += h
+  }
+
+  if (hours <= 0) return null
+  return Number((net / hours).toFixed(2))
+}
+
 export const buildBenchmarkChartData = ({ shiftItems, selectedPlatform, benchmarkMedian }) => {
+  const target = normalizePlatformName(selectedPlatform)
+
   return shiftItems
-    .filter((item) => item.platform === selectedPlatform)
+    .filter(
+      (item) =>
+        item.status === 'verified' && normalizePlatformName(item.platform) === target
+    )
     .map((item) => ({
       rawDate: item.date,
       dateLabel: formatDate(item.date),
       myHourly: formatHourlyRate(item.net_received, item.hours_worked),
-      cityMedian: benchmarkMedian,
+      cityTypical: benchmarkMedian,
     }))
     .sort((first, second) => new Date(first.rawDate) - new Date(second.rawDate))
-    .slice(-20)
+    .slice(-24)
 }
 
 const escapeHtml = (value) =>

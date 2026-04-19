@@ -26,6 +26,35 @@ const isoDateMonthsAgo = (monthsBack) => {
   return d.toISOString().slice(0, 10);
 };
 
+const isoDateDaysAgo = (daysBack) => {
+  const d = new Date();
+  d.setUTCDate(d.getUTCDate() - daysBack);
+  return d.toISOString().slice(0, 10);
+};
+
+/** Verified shifts in this window; hourly benchmark = median of *riders* (each rider: total net ÷ total hours). */
+const BENCHMARK_LOOKBACK_DAYS = 120;
+const MIN_SHIFT_HOURS = 0.25;
+const MAX_SHIFT_HOURS = 24;
+
+/** Match earnings rows when historical imports used mixed casing. */
+const platformMatchValues = (raw) => {
+  const s = String(raw || "").trim();
+  if (!s) {
+    return [];
+  }
+  const key = s.toLowerCase().replace(/\s+/g, "");
+  const aliases = {
+    uber: ["Uber"],
+    foodpanda: ["FoodPanda", "Foodpanda"],
+    bykea: ["Bykea"],
+    indrive: ["inDrive", "Indrive"],
+    careem: ["Careem"],
+  };
+  const list = aliases[key] || [s];
+  return [...new Set(list)];
+};
+
 const isDeactivationGrievance = (row) => {
   const category = String(row?.category || "").toLowerCase();
   const description = String(row?.description || "").toLowerCase();
@@ -154,50 +183,109 @@ router.get(
         success({
           platform,
           city_zone: cityZone,
-          metric: "median_hourly_pay",
+          metric: "median_rider_hourly_pay",
           median_hourly_pay: 0,
           average_hourly_pay: 0,
+          p25_hourly_pay: 0,
+          p75_hourly_pay: 0,
+          sample_riders: 0,
+          sample_shifts: 0,
           sample_size: 0,
+          period_days: BENCHMARK_LOOKBACK_DAYS,
         })
       );
     }
 
+    const sinceDate = isoDateDaysAgo(BENCHMARK_LOOKBACK_DAYS);
+    const platformValues = platformMatchValues(platform);
+    if (platformValues.length === 0) {
+      throw new HttpError(400, "Invalid platform.");
+    }
+
     const { data: earnings, error: earningsError } = await supabase
       .from("earnings")
-      .select("worker_id, hours_worked, net_received")
-      .eq("platform", platform)
+      .select("worker_id, hours_worked, net_received, date")
+      .in("platform", platformValues)
       .eq("status", "verified")
+      .gte("date", sinceDate)
       .in("worker_id", workerIds)
       .not("hours_worked", "is", null)
-      .not("net_received", "is", null)
-      .gt("hours_worked", 0);
+      .not("net_received", "is", null);
 
     if (earningsError) {
       throw new HttpError(500, "Failed to fetch earnings for benchmark.", earningsError.message);
     }
 
-    const hourlyRates = (earnings || [])
-      .map((item) => Number(item.net_received) / Number(item.hours_worked))
-      .filter((value) => Number.isFinite(value) && value > 0);
+    const byWorker = new Map();
+    let sampleShifts = 0;
 
-    const averageHourlyPay =
-      hourlyRates.length > 0
-        ? roundTo(
-            hourlyRates.reduce((total, current) => total + current, 0) / hourlyRates.length
-          )
-        : 0;
+    for (const row of earnings || []) {
+      const hours = Number(row.hours_worked);
+      const net = Number(row.net_received);
+      if (
+        !Number.isFinite(hours) ||
+        !Number.isFinite(net) ||
+        hours < MIN_SHIFT_HOURS ||
+        hours > MAX_SHIFT_HOURS ||
+        net < 0
+      ) {
+        continue;
+      }
+
+      const wid = row.worker_id;
+      if (!wid) {
+        continue;
+      }
+
+      sampleShifts += 1;
+      const cur = byWorker.get(wid) || { net: 0, hours: 0 };
+      cur.net += net;
+      cur.hours += hours;
+      byWorker.set(wid, cur);
+    }
+
+    const riderHourlies = [];
+    for (const [, agg] of byWorker) {
+      if (agg.hours <= 0) {
+        continue;
+      }
+      const h = agg.net / agg.hours;
+      if (Number.isFinite(h) && h > 0) {
+        riderHourlies.push(h);
+      }
+    }
+
+    riderHourlies.sort((a, b) => a - b);
+
+    const sampleRiders = riderHourlies.length;
 
     const medianHourlyPay =
-      hourlyRates.length > 0 ? roundTo(calculateMedian(hourlyRates)) : 0;
+      sampleRiders > 0 ? roundTo(calculateMedian(riderHourlies)) : 0;
+
+    const averageHourlyPay =
+      sampleRiders > 0
+        ? roundTo(riderHourlies.reduce((t, v) => t + v, 0) / sampleRiders)
+        : 0;
+
+    const p25HourlyPay =
+      sampleRiders > 0 ? roundTo(percentileNearestRank(riderHourlies, 0.25)) : 0;
+
+    const p75HourlyPay =
+      sampleRiders > 0 ? roundTo(percentileNearestRank(riderHourlies, 0.75)) : 0;
 
     return res.status(200).json(
       success({
         platform,
         city_zone: cityZone,
-        metric: "median_hourly_pay",
+        metric: "median_rider_hourly_pay",
         median_hourly_pay: medianHourlyPay,
         average_hourly_pay: averageHourlyPay,
-        sample_size: hourlyRates.length,
+        p25_hourly_pay: p25HourlyPay,
+        p75_hourly_pay: p75HourlyPay,
+        sample_riders: sampleRiders,
+        sample_shifts: sampleShifts,
+        sample_size: sampleRiders,
+        period_days: BENCHMARK_LOOKBACK_DAYS,
       })
     );
   })
