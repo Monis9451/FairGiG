@@ -124,6 +124,8 @@ app.use((err, _req, res, _next) => {
   res.status(statusCode).json(payload);
 });
 
-app.listen(env.port, () => {
-  console.log(`FairGiG auth service listening on port ${env.port}`);
+const LISTEN_HOST = process.env.HOST || "0.0.0.0";
+
+app.listen(env.port, LISTEN_HOST, () => {
+  console.log(`FairGiG auth service listening on http://${LISTEN_HOST}:${env.port}`);
 });

@@ -444,6 +444,8 @@ app.use((err, _req, res, _next) => {
   res.status(statusCode).json(payload);
 });
 
-app.listen(PORT, () => {
-  console.log(`FairGiG API gateway listening on port ${PORT}`);
+const LISTEN_HOST = process.env.HOST || "0.0.0.0";
+
+app.listen(PORT, LISTEN_HOST, () => {
+  console.log(`FairGiG API gateway listening on http://${LISTEN_HOST}:${PORT}`);
 });
