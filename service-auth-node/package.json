@@ -1,7 +1,7 @@
 {
-  "name": "fairgig-service-grievance-node",
+  "name": "fairgig-service-auth-node",
   "version": "1.0.0",
-  "description": "FairGiG grievances & community microservice (Supabase-backed).",
+  "description": "FairGiG auth microservice — signup, login (Supabase GoTrue).",
   "main": "server.js",
   "type": "module",
   "scripts": {

@@ -174,6 +174,7 @@ export function StaffMonitoringHub() {
           <div className="mt-4 overflow-x-auto">
             <p className="mb-2 text-sm font-semibold text-brand-dark">
               {vulnerabilityQuery.data?.count ?? 0} workers over {vulnThreshold}% drop
+              {(vulnerabilityQuery.data?.workers ?? []).length > 24 ? ' · showing first 24' : ''}
             </p>
             <table className="w-full min-w-[640px] text-left text-sm">
               <thead>
@@ -186,7 +187,7 @@ export function StaffMonitoringHub() {
                 </tr>
               </thead>
               <tbody>
-                {(vulnerabilityQuery.data?.workers ?? []).slice(0, 12).map((w) => (
+                {(vulnerabilityQuery.data?.workers ?? []).slice(0, 24).map((w) => (
                   <tr key={`${w.worker_id}-${w.current_month}`} className="border-b border-brand-light">
                     <td className="py-2 pr-2 font-medium text-brand-darkest">{w.worker_name || w.worker_id}</td>
                     <td className="py-2 pr-2 text-brand-muted">{w.city_zone || '—'}</td>

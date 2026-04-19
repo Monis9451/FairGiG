@@ -1,7 +1,7 @@
 {
-  "name": "fairgig-service-grievance-node",
+  "name": "fairgig-service-certificates-node",
   "version": "1.0.0",
-  "description": "FairGiG grievances & community microservice (Supabase-backed).",
+  "description": "FairGiG certificates microservice (Supabase-backed).",
   "main": "server.js",
   "type": "module",
   "scripts": {

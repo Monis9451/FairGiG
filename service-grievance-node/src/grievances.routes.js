@@ -7,9 +7,9 @@ import {
   parseBoundedInt,
   parseTagsInput,
   success,
-} from "../lib/http.js";
-import { isStaff } from "../middleware/authorization.js";
-import { getSupabaseClient } from "../lib/supabase.js";
+} from "./lib/http.js";
+import { isStaff } from "./middleware/authorization.js";
+import { getSupabaseClient } from "./lib/supabase.js";
 
 const router = express.Router();
 

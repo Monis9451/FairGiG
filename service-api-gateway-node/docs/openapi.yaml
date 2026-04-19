@@ -1255,7 +1255,7 @@ components:
           properties:
             service:
               type: string
-              example: fairgig-service-grievance-node
+              example: fairgig-service-api-gateway-node
             status:
               type: string
               example: ok

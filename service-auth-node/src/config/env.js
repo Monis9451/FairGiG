@@ -14,7 +14,7 @@ const parseOrigins = (rawOrigins) =>
     .filter(Boolean);
 
 export const env = {
-  port: toNumber(process.env.PORT, 5011),
+  port: toNumber(process.env.PORT, 5010),
   nodeEnv: process.env.NODE_ENV || "development",
   corsOrigins: parseOrigins(process.env.CORS_ORIGIN),
   supabaseUrl: process.env.SUPABASE_URL || null,

@@ -1,8 +1,8 @@
 import express from "express";
 
-import { HttpError, asyncHandler, roundTo, success } from "../lib/http.js";
-import { isStaff } from "../middleware/authorization.js";
-import { getSupabaseClient } from "../lib/supabase.js";
+import { HttpError, asyncHandler, roundTo, success } from "./lib/http.js";
+import { isStaff } from "./middleware/authorization.js";
+import { getSupabaseClient } from "./lib/supabase.js";
 
 const router = express.Router();
 

@@ -1,10 +1,16 @@
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { AlertTriangle, ArrowRight, BarChart3, FileCheck2, MessageSquareWarning, ShieldAlert } from 'lucide-react'
+import {
+  Activity,
+  AlertTriangle,
+  ArrowRight,
+  BarChart3,
+  FileCheck2,
+  MessageSquareWarning,
+} from 'lucide-react'
 import { Link } from 'react-router-dom'
 
 import { getVerifierVulnerabilityFlags } from '@/api/verifier'
-import { StaffMonitoringHub } from '@/components/staff/StaffMonitoringHub'
 import WorkerPageHeader from '@/components/worker/WorkerPageHeader'
 import WorkerSectionCard from '@/components/worker/WorkerSectionCard'
 import useAuthStore from '@/store/authStore'
@@ -55,14 +61,21 @@ const AdvocateOverviewPage = () => {
 
   const quickLinks = [
     {
+      icon: Activity,
+      title: 'Monitoring & trends',
+      description:
+        'Commission rates by platform over time, volatility by city zone, income distribution, MoM drop flags, deactivation clusters, and weekly top complaint categories.',
+      to: `${basePath}/monitoring`,
+    },
+    {
       icon: AlertTriangle,
       title: 'Grievance Manager',
-      description: 'Filter and resolve worker disputes from a detail-first workflow.',
+      description: 'Tag, triage, escalate, and resolve worker complaints.',
       to: `${basePath}/grievances`,
     },
     {
       icon: BarChart3,
-      title: 'City Benchmark Compare',
+      title: 'City benchmark compare',
       description: 'Compare platform pay medians across multiple city zones.',
       to: `${basePath}/benchmarks`,
     },
@@ -89,9 +102,9 @@ const AdvocateOverviewPage = () => {
   return (
     <div className="space-y-5">
       <WorkerPageHeader
-        badge={`${roleLabel} Dashboard`}
-        title={`${roleLabel} Operations Hub`}
-        description="Track moderation and grievance pressure in one place, then drill into analytics below."
+        badge={`${roleLabel} dashboard`}
+        title={`${roleLabel} operations hub`}
+        description="Snapshot of risk and queue pressure. Open Monitoring for full aggregate analytics (commission trends, zone volatility, complaint clusters, vulnerability flags)."
       />
 
       {hasOverviewError ? (
@@ -159,7 +172,27 @@ const AdvocateOverviewPage = () => {
         </div>
       </WorkerSectionCard>
 
-      <StaffMonitoringHub />
+      <WorkerSectionCard
+        kicker="Analytics"
+        title="Aggregate monitoring"
+        description="Everything in one place: verified-earnings commission share by month and platform, income volatility and distribution by city zone, grievance clusters (including deactivation-style), rolling 7-day top categories, and workers past the income-drop threshold."
+      >
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <ul className="list-inside list-disc text-sm text-brand-muted">
+            <li>Commission rate changes across platforms (mean deductions ÷ gross)</li>
+            <li>Income volatility by city zone (dispersion of net hourly pay)</li>
+            <li>Deactivation complaint clusters and weekly category leaderboard</li>
+            <li>Month-on-month income drop vulnerability list (configurable %)</li>
+          </ul>
+          <Link
+            to={`${basePath}/monitoring`}
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-2xl border-2 border-brand-primary bg-brand-primary px-5 py-3 text-sm font-bold uppercase tracking-wider text-brand-light shadow-md shadow-brand-primary/25 transition-opacity hover:opacity-90"
+          >
+            Open monitoring
+            <ArrowRight className="h-4 w-4" aria-hidden />
+          </Link>
+        </div>
+      </WorkerSectionCard>
     </div>
   )
 }

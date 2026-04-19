@@ -7,8 +7,7 @@ import hpp from "hpp";
 import { env } from "./src/config/env.js";
 import { attachProfile, requireAuth } from "./src/middleware/auth.js";
 import { requireProfile } from "./src/middleware/authorization.js";
-import grievancesRoutes from "./src/grievances.routes.js";
-import communityRoutes from "./src/community.routes.js";
+import certificatesRoutes from "./src/certificates.routes.js";
 
 const app = express();
 const NODE_ENV = env.nodeEnv;
@@ -81,7 +80,7 @@ app.use(express.urlencoded({ extended: false, limit: "100kb" }));
 app.get("/", (_req, res) => {
   res.status(200).json({
     success: true,
-    data: { message: "FairGiG grievance & community service is running" },
+    data: { message: "FairGiG certificates service is running" },
     error: null,
   });
 });
@@ -89,15 +88,14 @@ app.get("/", (_req, res) => {
 app.get("/health", (_req, res) => {
   res.status(200).json({
     success: true,
-    data: { service: "fairgig-service-grievance-node", status: "ok" },
+    data: { service: "fairgig-service-certificates-node", status: "ok" },
     error: null,
   });
 });
 
 const dataRoutesAuth = [requireAuth, attachProfile, requireProfile];
 
-app.use("/api/grievances", ...dataRoutesAuth, grievancesRoutes);
-app.use("/api/community", ...dataRoutesAuth, communityRoutes);
+app.use("/api/certificates", ...dataRoutesAuth, certificatesRoutes);
 
 app.use((req, res) => {
   res.status(404).json({
@@ -130,5 +128,5 @@ app.use((err, _req, res, _next) => {
 });
 
 app.listen(env.port, () => {
-  console.log(`FairGiG grievance service listening on port ${env.port}`);
+  console.log(`FairGiG certificates service listening on port ${env.port}`);
 });

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
+  Activity,
   AlertTriangle,
   BarChart3,
   ClipboardCheck,
@@ -76,6 +77,7 @@ function useNavItems() {
 
     return [
       { to: basePath, label: 'Dashboard', end: true, icon: LayoutDashboard },
+      { to: `${basePath}/monitoring`, label: 'Monitoring', end: true, icon: Activity },
       { to: `${basePath}/grievances`, label: 'Grievances', end: true, icon: AlertTriangle },
       { to: `${basePath}/benchmarks`, label: 'Benchmarks', end: true, icon: BarChart3 },
       { to: `${basePath}/certificates`, label: 'Certificates', end: true, icon: FileCheck2 },

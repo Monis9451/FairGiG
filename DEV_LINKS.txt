@@ -53,18 +53,26 @@ Human-readable schema notes in repo: backend/schema.txt
 
 Local services (default ports — override with .env)
 ----------------------------------------------------
-Node (service-grievance-node), default PORT=5000:
+API gateway (service-api-gateway-node), default PORT=5000 — use this host from the browser:
 - Root JSON:        http://localhost:5000/
 - Health:           http://localhost:5000/health
 - Downstream probe: http://localhost:5000/services/health
-- Auth:
-  - POST http://localhost:5000/api/v1/auth/signup   (email/password; optional full_name, city_zone)
-  - POST http://localhost:5000/api/v1/auth/login    (returns session; use access_token as Bearer)
+- Through the gateway (proxied to Node microservices):
+  - POST http://localhost:5000/api/v1/auth/signup
+  - POST http://localhost:5000/api/v1/auth/login
+  - GET/POST/PATCH … `/api/grievances`, `/api/community`, `/api/analytics/...`, `/api/certificates/...` (Bearer required)
+- Still on the gateway (not proxied):
   - GET http://localhost:5000/api/v1/me             (Bearer = Supabase user access_token)
   - GET http://localhost:5000/api/v1/verifier/ping  (role: verifier only; requires Bearer)
+  - POST … `/api/uploads/...` (shift screenshots; Cloudinary env on gateway)
 - Swagger UI:       http://localhost:5000/api-docs
-- OpenAPI file:     `service-grievance-node/docs/openapi.yaml` (also served at `/openapi.yaml` and `/openapi.json`)
-- Data APIs need `Authorization: Bearer <access_token>`: `/api/grievances`, `/api/analytics/...`, `/api/certificates/...`, `/api/community/...` (see Swagger tag **Community**)
+- OpenAPI file:     `service-api-gateway-node/docs/openapi.yaml` (also `/openapi.yaml`, `/openapi.json`)
+
+Node microservices (defaults; set `*_SERVICE_URL` on the gateway to match):
+- Auth:          service-auth-node          PORT=5010  `/api/v1/auth`, `/health`
+- Grievance:     service-grievance-node     PORT=5011  `/api/grievances`, `/api/community`, `/health`
+- Analytics:     service-analytics-node     PORT=5012  `/api/analytics`, `/health`
+- Certificates:  service-certificates-node  PORT=5013  `/api/certificates`, `/health`
 
 Python — Earnings (service-earnings-python), default PORT=8000:
 - Swagger / docs:   http://localhost:8000/docs
@@ -85,25 +93,33 @@ All requests use the Node host (e.g. http://localhost:5000) + `Authorization: Be
 - Earnings (proxied to FastAPI `/api/v1/...`): `/api/v1/earnings/status`, `/api/v1/earnings/shift-logs`, POST import-csv, PATCH `.../verification`, etc.
 - Anomaly: `/api/v1/anomaly/status`, `POST /api/v1/anomaly/analyze`, `GET /api/v1/anomaly/runs` (proxied to Python). Apply `database/anomaly_runs.sql` in Supabase for persisted `run_id` rows.
 
-OpenAPI: tag **BFF Python** in `service-grievance-node/docs/openapi.yaml`; detailed request/response shapes still in Python `/docs` on 8000/8001.
+OpenAPI: tag **BFF Python** in `service-api-gateway-node/docs/openapi.yaml`; detailed request/response shapes still in Python `/docs` on 8000/8001.
 
 Environment templates
 ---------------------
+service-api-gateway-node/.env.example
+service-auth-node/.env.example
 service-grievance-node/.env.example
+service-analytics-node/.env.example
+service-certificates-node/.env.example
 service-earnings-python/.env.example
 service-anomaly-python/.env.example
 
-Copy to .env in each service folder and paste Supabase keys from Project Settings → API.
+Copy to `.env` in each folder and paste Supabase keys from Project Settings → API where required.
 
-Local wiring (three terminals)
-------------------------------
-From repo root, only create .env if you do not have one yet:
+Local wiring (recommended: Python first, then Node microservices, then gateway)
+-----------------------------------------------------------------------------
+From repo root, create `.env` files if missing:
 
-  test -f service-grievance-node/.env    || cp service-grievance-node/.env.example service-grievance-node/.env
-  test -f service-earnings-python/.env   || cp service-earnings-python/.env.example service-earnings-python/.env
-  test -f service-anomaly-python/.env    || cp service-anomaly-python/.env.example service-anomaly-python/.env
+  test -f service-api-gateway-node/.env     || cp service-api-gateway-node/.env.example service-api-gateway-node/.env
+  test -f service-auth-node/.env              || cp service-auth-node/.env.example service-auth-node/.env
+  test -f service-grievance-node/.env         || cp service-grievance-node/.env.example service-grievance-node/.env
+  test -f service-analytics-node/.env         || cp service-analytics-node/.env.example service-analytics-node/.env
+  test -f service-certificates-node/.env      || cp service-certificates-node/.env.example service-certificates-node/.env
+  test -f service-earnings-python/.env        || cp service-earnings-python/.env.example service-earnings-python/.env
+  test -f service-anomaly-python/.env         || cp service-anomaly-python/.env.example service-anomaly-python/.env
 
-Then fill Supabase keys in each `.env`. Grievance-node also needs `ANOMALY_SERVICE_URL=http://localhost:8001` and `EARNINGS_SERVICE_URL=http://localhost:8000` (see its `.env.example`).
+Fill Supabase keys in each Node `.env` that talks to the database. The gateway `.env` needs Cloudinary (uploads), `EARNINGS_SERVICE_URL`, `ANOMALY_SERVICE_URL`, and the four `*_SERVICE_URL` entries for Node microservices (defaults in `.env.example`).
 
 Terminal A — earnings (8000):
 
@@ -119,17 +135,24 @@ Terminal B — anomaly (8001):
   pip install -r requirements.txt
   uvicorn app.main:app --host 127.0.0.1 --port 8001
 
-Terminal C — Node (5000):
+Terminals C–F — Node microservices (5010–5013), e.g.:
 
-  cd service-grievance-node
+  cd service-auth-node && npm install && npm run dev
+  cd service-grievance-node && npm install && npm run dev
+  cd service-analytics-node && npm install && npm run dev
+  cd service-certificates-node && npm install && npm run dev
+
+Terminal G — API gateway (5000):
+
+  cd service-api-gateway-node
   npm install
   npm run dev
 
-Check downstream reachability (Node probes `GET {base}/health` on each Python base URL):
+Check downstream reachability (gateway probes `GET {base}/health` on each configured service):
 
   curl -s http://localhost:5000/services/health
 
-You want `"reachable": true` for earnings and anomaly when both Python apps are up. Root health on Python: http://localhost:8000/health and http://localhost:8001/health
+You want `"reachable": true` for Python (earnings, anomaly) and each Node microservice when they are up. Python root health: http://localhost:8000/health and http://localhost:8001/health
 
 GitHub
 ------

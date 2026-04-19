@@ -1,8 +1,8 @@
 import express from "express";
 
-import { asyncHandler, HttpError, success } from "../lib/http.js";
-import { getSupabaseAdmin } from "../lib/supabaseAdmin.js";
-import { getSupabaseAnonClient } from "../lib/supabaseAnon.js";
+import { asyncHandler, HttpError, success } from "./lib/http.js";
+import { getSupabaseAdmin } from "./lib/supabaseAdmin.js";
+import { getSupabaseAnonClient } from "./lib/supabaseAnon.js";
 
 const router = express.Router();
 

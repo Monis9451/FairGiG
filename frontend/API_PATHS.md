@@ -46,18 +46,14 @@ Human-readable schema notes in repo: backend/schema.txt
 
 Local services (default ports — override with .env)
 ----------------------------------------------------
-Node (service-grievance-node), default PORT=5000:
-- Root JSON:         
-- Health:           http://localhost:5000/health
+API gateway (service-api-gateway-node), default PORT=5000 — browser calls this host only:
+- Root / health:    http://localhost:5000/ , http://localhost:5000/health
 - Downstream probe: http://localhost:5000/services/health
-- Auth:
-  - POST http://localhost:5000/api/v1/auth/signup   (email/password; optional full_name, city_zone)
-  - POST http://localhost:5000/api/v1/auth/login    (returns session; use access_token as Bearer)
-  - GET http://localhost:5000/api/v1/me             (Bearer = Supabase user access_token)
-  - GET http://localhost:5000/api/v1/verifier/ping  (role: verifier only; requires Bearer)
+- Proxied auth: POST http://localhost:5000/api/v1/auth/signup , /login (see `service-auth-node` on 5010)
+- On gateway: GET http://localhost:5000/api/v1/me , GET /api/v1/verifier/ping (Bearer)
 - Swagger UI:       http://localhost:5000/api-docs
-- OpenAPI file:     `service-grievance-node/docs/openapi.yaml` (also served at `/openapi.yaml` and `/openapi.json`)
-- Node API examples: `/api/grievances`, `/api/analytics/...`, `/api/certificates/...` (see Swagger)
+- OpenAPI file:     `service-api-gateway-node/docs/openapi.yaml` (`/openapi.yaml`, `/openapi.json`)
+- Data APIs (Bearer): `/api/grievances`, `/api/community`, `/api/analytics/...`, `/api/certificates/...` (implemented in separate Node services; see repo `DEV_LINKS.txt`)
 
 Python — Earnings (service-earnings-python), default PORT=8000:
 - Swagger / docs:   http://localhost:8000/docs
@@ -72,7 +68,7 @@ Frontend (when added; Vite default):
 
 Environment templates
 ---------------------
-service-grievance-node/.env.example
+service-api-gateway-node/.env.example (+ Node microservice `.env.example` files in repo root)
 service-earnings-python/.env.example
 service-anomaly-python/.env.example
 

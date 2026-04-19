@@ -1,15 +1,15 @@
 import express from "express";
 
-import { requireRole } from "../middleware/auth.js";
-import { isCommunityModerator } from "../middleware/authorization.js";
+import { requireRole } from "./middleware/auth.js";
+import { isCommunityModerator } from "./middleware/authorization.js";
 import {
   HttpError,
   asyncHandler,
   normalizeTagsOutput,
   parseTagsInput,
   success,
-} from "../lib/http.js";
-import { getSupabaseClient } from "../lib/supabase.js";
+} from "./lib/http.js";
+import { getSupabaseClient } from "./lib/supabase.js";
 
 const router = express.Router();
 
