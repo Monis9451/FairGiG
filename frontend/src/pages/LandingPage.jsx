@@ -96,7 +96,7 @@ const LandingPage = () => {
               to="/register"
               className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-full bg-brand-primary px-4 py-2.5 text-sm font-bold text-brand-light shadow-md shadow-brand-primary/30 transition-transform active:scale-[0.98] touch-manipulation sm:px-5"
             >
-              Get started
+              Sign up
               <ArrowRight className="h-4 w-4" aria-hidden />
             </Link>
           </nav>
@@ -149,21 +149,9 @@ const LandingPage = () => {
               variants={fadeUp}
               initial="hidden"
               animate="visible"
-              className="mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:justify-center"
+              className="mt-8 rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-medium text-white/85"
             >
-              <Link
-                to="/register"
-                className="inline-flex min-h-[52px] items-center justify-center gap-2 rounded-2xl bg-emerald-500 px-6 text-base font-bold text-brand-darkest shadow-lg shadow-emerald-500/25 transition-transform active:scale-[0.99] touch-manipulation"
-              >
-                Create free account
-                <ArrowRight className="h-5 w-5" aria-hidden />
-              </Link>
-              <Link
-                to="/login"
-                className="inline-flex min-h-[52px] items-center justify-center rounded-2xl border-2 border-white/25 bg-white/5 px-6 text-base font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/10 touch-manipulation"
-              >
-                I already have an account
-              </Link>
+              Built for real-world shift work: quick logs, trusted verification, and clean records when they matter.
             </motion.div>
             <motion.div
               custom={4}
@@ -244,12 +232,6 @@ const LandingPage = () => {
               <p className="mt-3 text-sm leading-relaxed text-brand-muted">
                 We designed the rider home like the apps you already use — big actions, short paths, and no clutter.
               </p>
-              <Link
-                to="/register"
-                className="mt-6 inline-flex min-h-[48px] w-full items-center justify-center rounded-2xl bg-brand-darkest text-sm font-bold text-white transition-opacity hover:opacity-90 touch-manipulation sm:w-auto sm:px-8"
-              >
-                Start in under a minute
-              </Link>
             </div>
           </div>
         </section>
@@ -258,22 +240,8 @@ const LandingPage = () => {
           <div className="mx-auto flex max-w-3xl flex-col items-center text-center">
             <h2 className="text-2xl font-bold sm:text-3xl">Join FairGig</h2>
             <p className="mt-3 max-w-lg text-sm leading-relaxed text-white/85 sm:text-base">
-              Create an account to log shifts, follow verification, and unlock city pay insights.
+              Create an account to log shifts, follow verification, and unlock city pay insights in minutes.
             </p>
-            <div className="mt-8 flex w-full max-w-md flex-col gap-3 sm:flex-row sm:justify-center">
-              <Link
-                to="/register"
-                className="inline-flex min-h-[52px] flex-1 items-center justify-center rounded-2xl bg-white px-6 text-base font-bold text-brand-primary shadow-lg transition-transform active:scale-[0.99] touch-manipulation"
-              >
-                Sign up free
-              </Link>
-              <Link
-                to="/login"
-                className="inline-flex min-h-[52px] flex-1 items-center justify-center rounded-2xl border-2 border-white/40 px-6 text-base font-semibold text-white transition-colors hover:bg-white/10 touch-manipulation"
-              >
-                Sign in
-              </Link>
-            </div>
           </div>
         </section>
       </main>
@@ -284,17 +252,7 @@ const LandingPage = () => {
             <LogoMark className="h-8 w-8 opacity-90" />
             <span className="font-semibold text-white/90">FairGig</span>
           </div>
-          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
-            <Link to="/login" className="min-h-[44px] inline-flex items-center font-medium text-white/80 hover:text-white touch-manipulation">
-              Sign in
-            </Link>
-            <Link
-              to="/register"
-              className="min-h-[44px] inline-flex items-center font-medium text-white/80 hover:text-white touch-manipulation"
-            >
-              Register
-            </Link>
-          </div>
+          <p className="text-xs text-white/45">Fair records for gig workers, built for speed and trust.</p>
         </div>
         <p className="mx-auto mt-6 max-w-md text-xs text-white/40">
           FairGig helps you organise and verify gig earnings. It does not replace official tax or legal advice.
