@@ -19,6 +19,42 @@ import uploadRoutes from "./src/gateway/uploads.routes.js";
 import { downstreamBff } from "./src/middleware/downstreamBff.js";
 import { downstreamNodeProxy } from "./src/middleware/downstreamNodeProxy.js";
 
+const jsonBodyLimited = express.json({ limit: "100kb" });
+
+const inlineBundles = env.inlineNodeServices
+  ? await (async () => {
+      const [
+        { default: authRoutes },
+        { default: grievancesRoutes },
+        { default: communityRoutes },
+        { default: analyticsRoutes },
+        { default: certificatesRoutes },
+      ] = await Promise.all([
+        import(new URL("../service-auth-node/src/auth.routes.js", import.meta.url).href),
+        import(new URL("../service-grievance-node/src/grievances.routes.js", import.meta.url).href),
+        import(new URL("../service-grievance-node/src/community.routes.js", import.meta.url).href),
+        import(new URL("../service-analytics-node/src/analytics.routes.js", import.meta.url).href),
+        import(new URL("../service-certificates-node/src/certificates.routes.js", import.meta.url).href),
+      ]);
+      return {
+        authRoutes,
+        grievancesRoutes,
+        communityRoutes,
+        analyticsRoutes,
+        certificatesRoutes,
+      };
+    })().catch((err) => {
+      console.error("INLINE_NODE_SERVICES: failed to load in-process route modules:", err);
+      throw err;
+    })
+  : null;
+
+if (env.inlineNodeServices) {
+  console.log(
+    "INLINE_NODE_SERVICES=1: auth, grievances, community, analytics, certificates are in-process"
+  );
+}
+
 const require = createRequire(import.meta.url);
 const swaggerUi = require("swagger-ui-express");
 
@@ -64,13 +100,26 @@ const isLoopbackOrigin = (origin) => {
 };
 
 const downstreamServices = [
-  { name: "auth-service", baseUrl: env.authServiceUrl },
-  { name: "grievance-service", baseUrl: env.grievanceServiceUrl },
-  { name: "analytics-service", baseUrl: env.analyticsServiceUrl },
-  { name: "certificates-service", baseUrl: env.certificatesServiceUrl },
+  ...(env.inlineNodeServices
+    ? []
+    : [
+        { name: "auth-service", baseUrl: env.authServiceUrl },
+        { name: "grievance-service", baseUrl: env.grievanceServiceUrl },
+        { name: "analytics-service", baseUrl: env.analyticsServiceUrl },
+        { name: "certificates-service", baseUrl: env.certificatesServiceUrl },
+      ]),
   { name: "anomaly-service", baseUrl: env.anomalyServiceUrl },
   { name: "earnings-service", baseUrl: env.earningsServiceUrl },
 ].filter((service) => Boolean(service.baseUrl));
+
+const bundledNodeHealthChecks = env.inlineNodeServices
+  ? [
+      { service: "auth-service", reachable: true, statusCode: 200, bundled: true },
+      { service: "grievance-service", reachable: true, statusCode: 200, bundled: true },
+      { service: "analytics-service", reachable: true, statusCode: 200, bundled: true },
+      { service: "certificates-service", reachable: true, statusCode: 200, bundled: true },
+    ]
+  : [];
 
 const httpClient = axios.create({
   timeout: env.axiosTimeoutMs,
@@ -144,8 +193,18 @@ app.use(
   })
 );
 
-/* Auth microservice (stream JSON bodies). */
-app.use("/api/v1/auth", downstreamNodeProxy(env.authServiceUrl, "Auth service"));
+const dataRoutesAuth = [requireAuth, attachProfile, requireProfile];
+
+/* Auth: separate process (proxy) or in-process when INLINE_NODE_SERVICES=1. */
+if (inlineBundles) {
+  const authRouter = express.Router();
+  authRouter.use(jsonBodyLimited);
+  authRouter.use(inlineBundles.authRoutes);
+  app.use("/api/v1/auth", authRouter);
+} else {
+  /* Proxy streams JSON bodies; keep before global express.json(). */
+  app.use("/api/v1/auth", downstreamNodeProxy(env.authServiceUrl, "Auth service"));
+}
 
 /*
  * BFF → Python FastAPI (stream bodies; must run before global express.json()).
@@ -156,30 +215,36 @@ app.use("/api/v1/earnings", ...bffAuth, downstreamBff("earnings"));
 app.use("/api/v1/anomaly", ...bffAuth, downstreamBff("anomaly"));
 
 /*
- * Node microservice proxies must run before express.json() so JSON bodies are not
- * consumed on the gateway; the downstream service parses the raw stream.
+ * Grievance / analytics / certificates: proxy to other Node services, or in-process.
+ * Proxies must run before express.json() so bodies are not consumed here.
  */
-const dataRoutesAuth = [requireAuth, attachProfile, requireProfile];
-app.use(
-  "/api/grievances",
-  ...dataRoutesAuth,
-  downstreamNodeProxy(env.grievanceServiceUrl, "Grievance service")
-);
-app.use(
-  "/api/community",
-  ...dataRoutesAuth,
-  downstreamNodeProxy(env.grievanceServiceUrl, "Grievance service")
-);
-app.use(
-  "/api/analytics",
-  ...dataRoutesAuth,
-  downstreamNodeProxy(env.analyticsServiceUrl, "Analytics service")
-);
-app.use(
-  "/api/certificates",
-  ...dataRoutesAuth,
-  downstreamNodeProxy(env.certificatesServiceUrl, "Certificate service")
-);
+if (inlineBundles) {
+  app.use("/api/grievances", ...dataRoutesAuth, jsonBodyLimited, inlineBundles.grievancesRoutes);
+  app.use("/api/community", ...dataRoutesAuth, jsonBodyLimited, inlineBundles.communityRoutes);
+  app.use("/api/analytics", ...dataRoutesAuth, jsonBodyLimited, inlineBundles.analyticsRoutes);
+  app.use("/api/certificates", ...dataRoutesAuth, jsonBodyLimited, inlineBundles.certificatesRoutes);
+} else {
+  app.use(
+    "/api/grievances",
+    ...dataRoutesAuth,
+    downstreamNodeProxy(env.grievanceServiceUrl, "Grievance service")
+  );
+  app.use(
+    "/api/community",
+    ...dataRoutesAuth,
+    downstreamNodeProxy(env.grievanceServiceUrl, "Grievance service")
+  );
+  app.use(
+    "/api/analytics",
+    ...dataRoutesAuth,
+    downstreamNodeProxy(env.analyticsServiceUrl, "Analytics service")
+  );
+  app.use(
+    "/api/certificates",
+    ...dataRoutesAuth,
+    downstreamNodeProxy(env.certificatesServiceUrl, "Certificate service")
+  );
+}
 
 app.use(express.json({ limit: "100kb" }));
 app.use(express.urlencoded({ extended: false, limit: "100kb" }));
@@ -202,14 +267,6 @@ app.get("/health", (_req, res) => {
 
 app.get("/services/health", async (_req, res, next) => {
   try {
-    if (downstreamServices.length === 0) {
-      return res.status(200).json({
-        success: true,
-        data: { services: [], message: "No downstream services configured" },
-        error: null,
-      });
-    }
-
     const checks = await Promise.all(
       downstreamServices.map(async (service) => {
         try {
@@ -230,9 +287,19 @@ app.get("/services/health", async (_req, res, next) => {
       })
     );
 
+    const services = [...bundledNodeHealthChecks, ...checks];
+
+    if (services.length === 0) {
+      return res.status(200).json({
+        success: true,
+        data: { services: [], message: "No downstream services configured" },
+        error: null,
+      });
+    }
+
     return res.status(200).json({
       success: true,
-      data: { services: checks },
+      data: { services },
       error: null,
     });
   } catch (error) {

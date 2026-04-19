@@ -51,9 +51,20 @@ const normalizeServiceUrl = (rawUrl) => {
   }
 };
 
+const truthy = (value) => {
+  const v = String(value || "").trim().toLowerCase();
+  return v === "1" || v === "true" || v === "yes";
+};
+
 export const env = {
   port: toNumber(process.env.PORT, 5000),
   nodeEnv: process.env.NODE_ENV || "development",
+  /**
+   * When true, auth / grievance / analytics / certificates handlers run in this process
+   * (imported from sibling service folders). Use on hosts with a service limit (e.g. Railway free):
+   * deploy repo root, `npm install`, set INLINE_NODE_SERVICES=1, omit AUTH_* / GRIEVANCE_* / etc. URLs.
+   */
+  inlineNodeServices: truthy(process.env.INLINE_NODE_SERVICES),
   corsOrigins: parseOrigins(process.env.CORS_ORIGIN),
   axiosTimeoutMs: toNumber(process.env.AXIOS_TIMEOUT_MS, 5000),
   /** BFF → Python (http-proxy-middleware); avoid hanging sockets when earnings/anomaly is down. */

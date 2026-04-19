@@ -142,11 +142,23 @@ Terminals C–F — Node microservices (5010–5013), e.g.:
   cd service-analytics-node && npm install && npm run dev
   cd service-certificates-node && npm install && npm run dev
 
-Terminal G — API gateway (5000):
+Terminal G — API gateway (5000), normal split mode:
 
   cd service-api-gateway-node
   npm install
   npm run dev
+
+Railway free / few services on the host — one Node process (no extra microservice slots):
+------------------------------------------------------------------
+From repo root: `npm install` (uses `package.json` workspaces), then start the same gateway
+with in-process Node routes:
+
+  INLINE_NODE_SERVICES=1 npm start
+
+(`npm start` at repo root runs `node service-api-gateway-node/server.js`.)
+Unset `AUTH_SERVICE_URL`, `GRIEVANCE_SERVICE_URL`, `ANALYTICS_SERVICE_URL`, `CERTIFICATES_SERVICE_URL`
+when using this; keep `EARNINGS_SERVICE_URL` and `ANOMALY_SERVICE_URL` for Python.
+`/services/health` lists bundled Node domains with `"bundled": true`.
 
 Check downstream reachability (gateway probes `GET {base}/health` on each configured service):
 
