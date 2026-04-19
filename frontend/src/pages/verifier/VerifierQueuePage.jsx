@@ -163,28 +163,29 @@ const VerifierQueuePage = () => {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <VerifierPageHeader
-        badge="Primary Workflow"
-        title="Verification Queue"
-        description="Validate shift evidence and finalize each pending record as verified, flagged, or unverifiable."
+        badge="Queue"
+        title="Shift verification"
+        description="Confirm evidence, then mark each row verified, flagged, or unverifiable. Flag and unverifiable require a short note."
         actions={
           <Button
             type="button"
-            className="inline-flex items-center gap-2 rounded-xl border border-brand-muted bg-brand-light px-4 py-2 text-sm font-semibold text-brand-darkest transition hover:opacity-90"
+            variant="outline"
+            className="h-11 gap-2 rounded-lg border-brand-darkest/15 bg-white px-4 text-sm font-semibold text-brand-darkest shadow-sm"
             onClick={() => shiftLogsQuery.refetch()}
             disabled={shiftLogsQuery.isFetching}
           >
             <RefreshCw size={15} aria-hidden="true" />
-            {shiftLogsQuery.isFetching ? 'Refreshing...' : 'Refresh Queue'}
+            {shiftLogsQuery.isFetching ? 'Refreshing…' : 'Refresh'}
           </Button>
         }
       />
 
       <VerifierSectionCard
-        kicker="Queue Filters"
-        title="Filter Shift Logs"
-        description="Scope the queue by worker, status, platform, or date range before review."
+        kicker="Filters & results"
+        title="Shift logs"
+        description="Narrow by worker, status, platform, or dates, then review the list below."
       >
         <QueueFilters
           filters={shiftFilterDraft}

@@ -3,9 +3,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { GRIEVANCE_STATUS_OPTIONS } from '@/features/verifier/constants'
 
+const selectClass =
+  'h-11 w-full rounded-lg border border-brand-darkest/15 bg-white px-3 text-sm text-brand-darkest shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/25'
+
 const GrievanceFilters = ({ filters, onChange, onApply, onReset }) => {
   return (
-    <div className="rounded-xl border border-brand-muted/35 bg-brand-light/70 p-4">
+    <div className="rounded-lg border border-brand-darkest/10 bg-brand-light/30 p-4">
       <div className="grid gap-4 md:grid-cols-2">
         <div>
           <Label htmlFor="grievance_filter_worker_id">Worker ID</Label>
@@ -14,6 +17,7 @@ const GrievanceFilters = ({ filters, onChange, onApply, onReset }) => {
             value={filters.workerId}
             onChange={(event) => onChange('workerId', event.target.value)}
             placeholder="worker uuid"
+            className="mt-1.5 h-11 rounded-lg border-brand-darkest/15"
           />
         </div>
 
@@ -21,11 +25,11 @@ const GrievanceFilters = ({ filters, onChange, onApply, onReset }) => {
           <Label htmlFor="grievance_filter_status">Status</Label>
           <select
             id="grievance_filter_status"
-            className="h-10 w-full rounded-md border-2 border-brand-primary bg-brand-light px-3 text-sm text-brand-darkest focus:outline-none focus:ring-2 focus:ring-brand-primary"
+            className={`mt-1.5 ${selectClass}`}
             value={filters.status}
             onChange={(event) => onChange('status', event.target.value)}
           >
-            <option value="">all</option>
+            <option value="">All</option>
             {GRIEVANCE_STATUS_OPTIONS.map((option) => (
               <option key={option} value={option}>
                 {option}
@@ -41,6 +45,7 @@ const GrievanceFilters = ({ filters, onChange, onApply, onReset }) => {
             value={filters.platform}
             onChange={(event) => onChange('platform', event.target.value)}
             placeholder="Uber"
+            className="mt-1.5 h-11 rounded-lg border-brand-darkest/15"
           />
         </div>
 
@@ -51,6 +56,7 @@ const GrievanceFilters = ({ filters, onChange, onApply, onReset }) => {
             value={filters.category}
             onChange={(event) => onChange('category', event.target.value)}
             placeholder="payment issue"
+            className="mt-1.5 h-11 rounded-lg border-brand-darkest/15"
           />
         </div>
 
@@ -61,6 +67,7 @@ const GrievanceFilters = ({ filters, onChange, onApply, onReset }) => {
             value={filters.tag}
             onChange={(event) => onChange('tag', event.target.value)}
             placeholder="late payout"
+            className="mt-1.5 h-11 rounded-lg border-brand-darkest/15"
           />
         </div>
 
@@ -71,21 +78,23 @@ const GrievanceFilters = ({ filters, onChange, onApply, onReset }) => {
             value={filters.search}
             onChange={(event) => onChange('search', event.target.value)}
             placeholder="description or category"
+            className="mt-1.5 h-11 rounded-lg border-brand-darkest/15"
           />
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-3">
+      <div className="mt-4 flex flex-wrap gap-2">
         <Button
           type="button"
-          className="rounded-xl border border-brand-primary bg-brand-primary px-4 py-2 text-sm font-semibold text-brand-light transition-opacity hover:opacity-90"
+          className="h-11 rounded-lg bg-brand-primary px-4 text-sm font-semibold text-brand-light hover:opacity-90"
           onClick={onApply}
         >
-          Apply Filters
+          Apply
         </Button>
         <Button
           type="button"
-          className="rounded-xl border border-brand-muted bg-brand-light px-4 py-2 text-sm font-semibold text-brand-darkest transition-opacity hover:opacity-90"
+          variant="outline"
+          className="h-11 rounded-lg border-brand-darkest/15 bg-white px-4 text-sm font-semibold text-brand-darkest"
           onClick={onReset}
         >
           Reset

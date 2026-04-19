@@ -88,6 +88,14 @@ export const listVerifierGrievances = async ({
   return unwrapResponseData(response)
 }
 
+export const updateVerifierGrievance = async ({ grievanceId, status }) => {
+  const response = await apiClient.patch(`/api/grievances/${grievanceId}`, {
+    status,
+  })
+
+  return unwrapResponseData(response)
+}
+
 export const getVerifierPing = async () => {
   const response = await apiClient.get('/api/v1/verifier/ping')
   return unwrapResponseData(response)

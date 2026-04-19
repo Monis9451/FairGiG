@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { RefreshCw } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -6,7 +7,10 @@ import VerifierPageHeader from '@/components/verifier/VerifierPageHeader'
 import VerifierSectionCard from '@/components/verifier/VerifierSectionCard'
 import GrievanceFilters from '@/components/verifier/grievances/GrievanceFilters'
 import GrievanceList from '@/components/verifier/grievances/GrievanceList'
+import { parseApiError } from '@/features/verifier/utils'
 import { useVerifierGrievancesQuery } from '@/hooks/useVerifierQueries'
+import { updateVerifierGrievance } from '@/api/verifier'
+import { useToast } from '@/hooks/useToast'
 
 const defaultGrievanceFilters = {
   workerId: '',
@@ -18,10 +22,25 @@ const defaultGrievanceFilters = {
 }
 
 const VerifierGrievancesPage = () => {
+  const queryClient = useQueryClient()
+  const { success: showSuccessToast, error: showErrorToast } = useToast()
+
   const [grievanceFilterDraft, setGrievanceFilterDraft] = useState(defaultGrievanceFilters)
   const [grievanceFilters, setGrievanceFilters] = useState(defaultGrievanceFilters)
 
   const grievancesQuery = useVerifierGrievancesQuery(grievanceFilters)
+
+  const updateStatusMutation = useMutation({
+    meta: { disableSuccessToast: true, disableErrorToast: true },
+    mutationFn: ({ grievanceId, status }) => updateVerifierGrievance({ grievanceId, status }),
+    onSuccess: () => {
+      showSuccessToast('Grievance status updated.')
+      queryClient.invalidateQueries({ queryKey: ['verifier-grievances'] })
+    },
+    onError: (err) => {
+      showErrorToast(parseApiError(err))
+    },
+  })
 
   const grievanceItems = useMemo(
     () => grievancesQuery.data?.items ?? [],
@@ -51,29 +70,34 @@ const VerifierGrievancesPage = () => {
     }))
   }
 
+  const handleSaveStatus = (grievanceId, status) => {
+    updateStatusMutation.mutate({ grievanceId, status })
+  }
+
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <VerifierPageHeader
         badge="Disputes"
-        title="Grievances Overview"
-        description="Review worker disputes with verifier-level filters for status, category, platform, and tags."
+        title="Grievances"
+        description="Filter worker cases and update status when triage is complete (open, escalated, resolved)."
         actions={
           <Button
             type="button"
-            className="inline-flex items-center gap-2 rounded-xl border border-brand-muted bg-brand-light px-4 py-2 text-sm font-semibold text-brand-darkest transition hover:opacity-90"
+            variant="outline"
+            className="h-11 gap-2 rounded-lg border-brand-darkest/15 bg-white px-4 text-sm font-semibold text-brand-darkest shadow-sm"
             onClick={() => grievancesQuery.refetch()}
             disabled={grievancesQuery.isFetching}
           >
             <RefreshCw size={15} aria-hidden="true" />
-            {grievancesQuery.isFetching ? 'Refreshing...' : 'Refresh List'}
+            {grievancesQuery.isFetching ? 'Refreshing…' : 'Refresh'}
           </Button>
         }
       />
 
       <VerifierSectionCard
-        kicker="Filter View"
-        title="Find Relevant Grievances"
-        description="Apply targeted filters to investigate specific worker complaints quickly."
+        kicker="Filters & list"
+        title="Cases"
+        description="Use worker ID, status, platform, category, tags, or free-text search."
       >
         <GrievanceFilters
           filters={grievanceFilterDraft}
@@ -87,6 +111,8 @@ const VerifierGrievancesPage = () => {
           isLoading={grievancesQuery.isLoading}
           isError={grievancesQuery.isError}
           error={grievancesQuery.error}
+          onSaveStatus={handleSaveStatus}
+          updatingId={updateStatusMutation.isPending ? updateStatusMutation.variables?.grievanceId : null}
         />
       </VerifierSectionCard>
     </div>

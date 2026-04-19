@@ -59,11 +59,11 @@ function useNavItems() {
 
   if (role === 'verifier') {
     return [
-      { to: '/verifier', label: 'Dashboard', end: true, icon: LayoutDashboard },
-      { to: '/verifier/queue', label: 'Verification Queue', end: true, icon: ClipboardCheck },
+      { to: '/verifier', label: 'Overview', end: true, icon: LayoutDashboard },
+      { to: '/verifier/queue', label: 'Queue', end: true, icon: ClipboardCheck },
       {
         to: '/verifier/vulnerability',
-        label: 'Vulnerability Flags',
+        label: 'Risk flags',
         end: true,
         icon: ShieldAlert,
       },

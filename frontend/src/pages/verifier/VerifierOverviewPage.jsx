@@ -24,12 +24,23 @@ import {
 import { parseApiError } from '@/features/verifier/utils'
 import { formatCurrency, formatDate, formatPercent } from '@/utils/formatters'
 
+/** Sample size per stat; API does not return DB totals — numbers are “in this sample”. */
+const OVERVIEW_SAMPLE_LIMIT = 200
+const SAMPLE_STAT_HINT = `Sample: up to ${OVERVIEW_SAMPLE_LIMIT} most recent rows per status (not full queue totals).`
+
+const snapshotCardClass =
+  'rounded-lg border border-brand-darkest/10 bg-brand-light/40 px-3 py-2.5 transition-colors hover:bg-brand-light/70'
+
 const VerifierOverviewPage = () => {
   const pingQuery = useVerifierPingQuery()
-  const pendingQuery = useVerifierShiftLogsQuery({ status: 'pending', limit: 50, offset: 0 })
-  const verifiedQuery = useVerifierShiftLogsQuery({ status: 'verified', limit: 50, offset: 0 })
-  const flaggedQuery = useVerifierShiftLogsQuery({ status: 'flagged', limit: 50, offset: 0 })
-  const unverifiableQuery = useVerifierShiftLogsQuery({ status: 'unverifiable', limit: 50, offset: 0 })
+  const pendingQuery = useVerifierShiftLogsQuery({ status: 'pending', limit: OVERVIEW_SAMPLE_LIMIT, offset: 0 })
+  const verifiedQuery = useVerifierShiftLogsQuery({ status: 'verified', limit: OVERVIEW_SAMPLE_LIMIT, offset: 0 })
+  const flaggedQuery = useVerifierShiftLogsQuery({ status: 'flagged', limit: OVERVIEW_SAMPLE_LIMIT, offset: 0 })
+  const unverifiableQuery = useVerifierShiftLogsQuery({
+    status: 'unverifiable',
+    limit: OVERVIEW_SAMPLE_LIMIT,
+    offset: 0,
+  })
   const vulnerabilityQuery = useVerifierVulnerabilityFlagsQuery(20)
   const grievancesQuery = useVerifierGrievancesQuery({ status: 'open', limit: 20, offset: 0 })
 
@@ -43,45 +54,47 @@ const VerifierOverviewPage = () => {
   const statTiles = useMemo(
     () => [
       {
-        label: 'Pending Queue',
+        label: 'Pending (sample)',
         value: pendingItems.length,
         icon: ClipboardList,
-        tone: 'from-brand-muted/30 to-brand-muted/5',
+        hint: SAMPLE_STAT_HINT,
       },
       {
-        label: 'Verified Logs',
+        label: 'Verified (sample)',
         value: verifiedItems.length,
         icon: CheckCircle2,
-        tone: 'from-brand-primary/25 to-brand-primary/5',
+        hint: SAMPLE_STAT_HINT,
       },
       {
-        label: 'Flagged Logs',
+        label: 'Flagged (sample)',
         value: flaggedItems.length,
         icon: AlertTriangle,
-        tone: 'from-brand-dark/30 to-brand-dark/5',
+        hint: SAMPLE_STAT_HINT,
       },
       {
-        label: 'Unverifiable Logs',
+        label: 'Unverifiable (sample)',
         value: unverifiableItems.length,
         icon: Ban,
-        tone: 'from-amber-200/80 to-amber-50/40',
+        hint: SAMPLE_STAT_HINT,
       },
       {
-        label: 'Vulnerability Flags',
+        label: 'Risk flags',
         value: vulnerabilityWorkers.length,
         icon: ShieldAlert,
-        tone: 'from-brand-darkest/20 to-brand-dark/5',
+        hint: 'Workers over 20% MoM drop (current query).',
       },
       {
-        label: 'Verifier Ping',
-        value: pingQuery.isLoading ? 'Checking...' : pingQuery.isError ? 'Unavailable' : 'OK',
+        label: 'Verifier ping',
+        value: pingQuery.isLoading ? '…' : pingQuery.isError ? 'Offline' : 'OK',
         icon: Activity,
-        tone: 'from-brand-primary/25 to-brand-primary/5',
+        hint: pingQuery.isError ? parseApiError(pingQuery.error) : 'Gateway / earnings reachability.',
+        emphasis: pingQuery.isError,
       },
     ],
     [
       flaggedItems.length,
       pendingItems.length,
+      pingQuery.error,
       pingQuery.isError,
       pingQuery.isLoading,
       unverifiableItems.length,
@@ -109,34 +122,35 @@ const VerifierOverviewPage = () => {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <VerifierPageHeader
-        badge="Verifier Dashboard"
-        title="Earnings Review Control Center"
-        description="Track verification throughput, monitor risk signals, and move quickly into queue-level decisions."
+        badge="Verifier"
+        title="Overview"
+        description="Queue health, risk signals, and open disputes at a glance. Stat tiles use a fixed sample so you can spot spikes without implying full database counts."
         actions={
           <Button
             type="button"
-            className="inline-flex items-center gap-2 rounded-xl border border-brand-primary bg-brand-primary px-4 py-2.5 text-sm font-semibold text-brand-light transition hover:opacity-90"
+            variant="outline"
+            className="h-11 gap-2 rounded-lg border-brand-darkest/15 bg-white px-4 text-sm font-semibold text-brand-darkest shadow-sm"
             onClick={refreshAll}
           >
             <RefreshCw size={16} aria-hidden="true" />
-            Refresh Overview
+            Refresh
           </Button>
         }
       />
 
       <VerifierStatsCards tiles={statTiles} isLoading={statsLoading} />
 
-      <div className="grid gap-5 xl:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-3">
         <VerifierSectionCard
-          kicker="Queue Snapshot"
-          title="Next Pending Logs"
-          description="Most recent records waiting for verifier action."
+          kicker="Queue"
+          title="Latest pending"
+          description="Most recent rows waiting for review."
           actions={
             <Link
               to="/verifier/queue"
-              className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-brand-primary"
+              className="inline-flex items-center gap-1 text-sm font-semibold text-brand-primary"
             >
               Open queue
               <ArrowRight size={14} aria-hidden="true" />
@@ -146,22 +160,19 @@ const VerifierOverviewPage = () => {
           {pendingQuery.isError ? (
             <p className="text-sm text-brand-muted">{parseApiError(pendingQuery.error)}</p>
           ) : pendingItems.length === 0 ? (
-            <p className="rounded-xl border border-brand-muted/35 bg-brand-light/70 p-3 text-sm text-brand-muted">
-              No pending logs available.
+            <p className="rounded-lg border border-dashed border-brand-darkest/15 bg-brand-light/30 p-4 text-sm text-brand-muted">
+              No pending logs in this sample.
             </p>
           ) : (
             <div className="space-y-2">
               {pendingItems.slice(0, 5).map((item) => (
-                <article
-                  key={item.id}
-                  className="rounded-xl border border-brand-muted/35 bg-brand-light/70 px-3 py-2.5"
-                >
+                <article key={item.id} className={snapshotCardClass}>
                   <div className="flex items-center justify-between gap-2">
                     <p className="font-mono text-xs text-brand-darkest">{item.worker_id}</p>
                     <span className="text-xs text-brand-muted">{formatDate(item.date)}</span>
                   </div>
                   <p className="mt-1 text-sm font-semibold text-brand-darkest">{item.platform}</p>
-                  <p className="text-xs text-brand-muted">Net: {formatCurrency(item.net_received)}</p>
+                  <p className="text-xs text-brand-muted">Net {formatCurrency(item.net_received)}</p>
                 </article>
               ))}
             </div>
@@ -169,15 +180,15 @@ const VerifierOverviewPage = () => {
         </VerifierSectionCard>
 
         <VerifierSectionCard
-          kicker="Risk Snapshot"
-          title="Top Vulnerability Alerts"
-          description="Income drop outliers based on current 20% threshold."
+          kicker="Risk"
+          title="Vulnerability alerts"
+          description="Month-on-month verified income drops above the default 20% threshold."
           actions={
             <Link
               to="/verifier/vulnerability"
-              className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-brand-primary"
+              className="inline-flex items-center gap-1 text-sm font-semibold text-brand-primary"
             >
-              Open vulnerability
+              Details
               <ArrowRight size={14} aria-hidden="true" />
             </Link>
           }
@@ -185,21 +196,18 @@ const VerifierOverviewPage = () => {
           {vulnerabilityQuery.isError ? (
             <p className="text-sm text-brand-muted">{parseApiError(vulnerabilityQuery.error)}</p>
           ) : vulnerabilityWorkers.length === 0 ? (
-            <p className="rounded-xl border border-brand-muted/35 bg-brand-light/70 p-3 text-sm text-brand-muted">
-              No workers exceed the current threshold.
+            <p className="rounded-lg border border-dashed border-brand-darkest/15 bg-brand-light/30 p-4 text-sm text-brand-muted">
+              No workers exceed the threshold right now.
             </p>
           ) : (
             <div className="space-y-2">
               {vulnerabilityWorkers.slice(0, 5).map((item) => (
-                <article
-                  key={`${item.worker_id}-${item.current_month}`}
-                  className="rounded-xl border border-brand-muted/35 bg-brand-light/70 px-3 py-2.5"
-                >
+                <article key={`${item.worker_id}-${item.current_month}`} className={snapshotCardClass}>
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-sm font-semibold text-brand-darkest">
-                      {item.worker_name || 'Unknown Worker'}
+                      {item.worker_name || 'Unknown worker'}
                     </p>
-                    <span className="rounded-full border border-brand-dark bg-brand-dark px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-brand-light">
+                    <span className="rounded-full border border-brand-dark/20 bg-brand-dark px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-brand-light">
                       {formatPercent(item.drop_percentage)} drop
                     </span>
                   </div>
@@ -211,15 +219,15 @@ const VerifierOverviewPage = () => {
         </VerifierSectionCard>
 
         <VerifierSectionCard
-          kicker="Disputes Snapshot"
-          title="Open Grievances"
-          description="Recent worker grievances requiring active monitoring."
+          kicker="Disputes"
+          title="Open grievances"
+          description="Recent open cases (latest 20)."
           actions={
             <Link
               to="/verifier/grievances"
-              className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-brand-primary"
+              className="inline-flex items-center gap-1 text-sm font-semibold text-brand-primary"
             >
-              Open grievances
+              All grievances
               <ArrowRight size={14} aria-hidden="true" />
             </Link>
           }
@@ -227,16 +235,13 @@ const VerifierOverviewPage = () => {
           {grievancesQuery.isError ? (
             <p className="text-sm text-brand-muted">{parseApiError(grievancesQuery.error)}</p>
           ) : grievanceItems.length === 0 ? (
-            <p className="rounded-xl border border-brand-muted/35 bg-brand-light/70 p-3 text-sm text-brand-muted">
-              No open grievances currently.
+            <p className="rounded-lg border border-dashed border-brand-darkest/15 bg-brand-light/30 p-4 text-sm text-brand-muted">
+              No open grievances in this sample.
             </p>
           ) : (
             <div className="space-y-2">
               {grievanceItems.slice(0, 5).map((item) => (
-                <article
-                  key={item.id}
-                  className="rounded-xl border border-brand-muted/35 bg-brand-light/70 px-3 py-2.5"
-                >
+                <article key={item.id} className={snapshotCardClass}>
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-sm font-semibold text-brand-darkest">{item.category}</p>
                     <span className="text-xs text-brand-muted">{formatDate(item.created_at)}</span>
