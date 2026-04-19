@@ -1,28 +1,29 @@
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { motion } from 'framer-motion';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { fieldVariant, fieldContainerVariant } from './motionVariants';
-import { useSignUp } from '@/hooks/useAuth';
-import { useToast } from '@/hooks/useToast';
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 
-const registerSchema = z.object({
-  fullName: z.string().min(2, 'Name is required'),
-  cityZone: z.string().min(2, 'City zone is required'),
-  email: z.string().email('Invalid email'),
-  password: z.string().min(6, 'Min 6 characters'),
-  confirmPassword: z.string().min(6, 'Min 6 characters'),
-}).refine((values) => values.password === values.confirmPassword, {
-  message: 'Passwords do not match',
-  path: ['confirmPassword'],
-});
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { useSignUp } from '@/hooks/useAuth'
+import { useToast } from '@/hooks/useToast'
+
+const registerSchema = z
+  .object({
+    fullName: z.string().min(2, 'Enter your name'),
+    cityZone: z.string().min(2, 'Enter your city or zone'),
+    email: z.string().email('Enter a valid email'),
+    password: z.string().min(6, 'At least 6 characters'),
+    confirmPassword: z.string().min(6, 'Confirm your password'),
+  })
+  .refine((values) => values.password === values.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
+  })
 
 export function RegisterForm() {
-  const signUp = useSignUp();
-  const { error: showErrorToast } = useToast();
+  const signUp = useSignUp()
+  const { error: showErrorToast } = useToast()
 
   const {
     register,
@@ -37,7 +38,7 @@ export function RegisterForm() {
       password: '',
       confirmPassword: '',
     },
-  });
+  })
 
   const onSubmit = (data) => {
     signUp.mutate({
@@ -45,62 +46,92 @@ export function RegisterForm() {
       password: data.password,
       full_name: data.fullName,
       city_zone: data.cityZone,
-    });
-  };
+    })
+  }
 
   const onInvalid = () => {
-    showErrorToast('Please fix the highlighted registration fields.');
-  };
+    showErrorToast('Check the fields below and try again.')
+  }
 
   return (
-    <form onSubmit={handleSubmit(onSubmit, onInvalid)} autoComplete="off">
-      <motion.div variants={fieldContainerVariant} initial="hidden" animate="visible" className="flex flex-col gap-2.5">
-        <motion.div variants={fieldVariant} className="grid gap-2.5 md:grid-cols-2 md:gap-3">
-          <div>
-            <Label>Full Name</Label>
-            <Input {...register('fullName')} autoComplete="off" placeholder="Enter your full name" className="h-9" />
-            {errors.fullName && <span className="mt-1 block text-xs text-brand-muted">{errors.fullName.message}</span>}
-          </div>
+    <form onSubmit={handleSubmit(onSubmit, onInvalid)} className="flex flex-col gap-4" noValidate>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-1.5 sm:col-span-1">
+          <Label htmlFor="reg-name">Full name</Label>
+          <Input id="reg-name" {...register('fullName')} autoComplete="name" placeholder="Your name" />
+          {errors.fullName ? (
+            <p className="text-xs font-medium text-red-600" role="alert">
+              {errors.fullName.message}
+            </p>
+          ) : null}
+        </div>
+        <div className="space-y-1.5 sm:col-span-1">
+          <Label htmlFor="reg-city">City / zone</Label>
+          <Input id="reg-city" {...register('cityZone')} autoComplete="address-level2" placeholder="e.g. Karachi" />
+          {errors.cityZone ? (
+            <p className="text-xs font-medium text-red-600" role="alert">
+              {errors.cityZone.message}
+            </p>
+          ) : null}
+        </div>
+      </div>
 
-          <div>
-            <Label>City Zone</Label>
-            <Input {...register('cityZone')} autoComplete="off" placeholder="Enter your city zone" className="h-9" />
-            {errors.cityZone && <span className="mt-1 block text-xs text-brand-muted">{errors.cityZone.message}</span>}
-          </div>
-        </motion.div>
-
-        <motion.div variants={fieldVariant}>
-          <Label>E-mail</Label>
-          <Input {...register('email')} type="email" autoComplete="off" placeholder="you@example.com" className="h-9" />
-          {errors.email && <span className="mt-1 block text-xs text-brand-muted">{errors.email.message}</span>}
-        </motion.div>
-
-        <motion.div variants={fieldVariant} className="grid gap-2.5 md:grid-cols-2 md:gap-3">
-          <div>
-            <Label>Password</Label>
-            <Input type="password" {...register('password')} autoComplete="new-password" placeholder="Create a password" className="h-9" />
-            {errors.password && <span className="mt-1 block text-xs text-brand-muted">{errors.password.message}</span>}
-          </div>
-
-          <div>
-            <Label>Confirm Password</Label>
-            <Input type="password" {...register('confirmPassword')} autoComplete="new-password" placeholder="Confirm your password" className="h-9" />
-            {errors.confirmPassword && <span className="mt-1 block text-xs text-brand-muted">{errors.confirmPassword.message}</span>}
-          </div>
-        </motion.div>
-
-        <motion.div variants={fieldVariant} className="mt-0.5">
-          <Button type="submit" disabled={signUp.isPending} className="h-10 w-full rounded-full border-2 border-brand-primary bg-brand-primary text-sm font-bold uppercase tracking-widest text-brand-light transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70">
-            Create Account
-          </Button>
-        </motion.div>
-
-        {signUp.isError && (
-          <p className="text-sm text-brand-muted">
-            {signUp.error?.response?.data?.error || 'Unable to create account. Please try again.'}
+      <div className="space-y-1.5">
+        <Label htmlFor="reg-email">Email</Label>
+        <Input id="reg-email" {...register('email')} type="email" autoComplete="email" placeholder="you@example.com" />
+        {errors.email ? (
+          <p className="text-xs font-medium text-red-600" role="alert">
+            {errors.email.message}
           </p>
-        )}
-      </motion.div>
+        ) : null}
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label htmlFor="reg-password">Password</Label>
+          <Input
+            id="reg-password"
+            type="password"
+            {...register('password')}
+            autoComplete="new-password"
+            placeholder="At least 6 characters"
+          />
+          {errors.password ? (
+            <p className="text-xs font-medium text-red-600" role="alert">
+              {errors.password.message}
+            </p>
+          ) : null}
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="reg-confirm">Confirm password</Label>
+          <Input
+            id="reg-confirm"
+            type="password"
+            {...register('confirmPassword')}
+            autoComplete="new-password"
+            placeholder="Repeat password"
+          />
+          {errors.confirmPassword ? (
+            <p className="text-xs font-medium text-red-600" role="alert">
+              {errors.confirmPassword.message}
+            </p>
+          ) : null}
+        </div>
+      </div>
+
+      <Button
+        type="submit"
+        disabled={signUp.isPending}
+        className="mt-1 h-12 w-full rounded-lg bg-brand-darkest text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+      >
+        {signUp.isPending ? 'Creating account…' : 'Create account'}
+      </Button>
+
+      {signUp.isError ? (
+        <p className="text-sm text-red-700" role="alert">
+          {signUp.error?.response?.data?.error || 'Could not create account. Try again.'}
+        </p>
+      ) : null}
     </form>
-  );
+  )
 }
