@@ -17,22 +17,30 @@ import { formatCurrency } from '@/utils/formatters'
 import { cn } from '@/lib/utils'
 
 const selectClassName =
-  'h-11 w-full rounded-lg border border-brand-muted/40 bg-white px-3 text-sm text-brand-darkest shadow-sm transition-colors focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/25'
+  'h-11 w-full rounded-lg border border-brand-darkest/15 bg-white px-3 text-sm text-brand-darkest transition-colors focus-visible:border-brand-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary/20'
 
+/** Minimal stat card: white surface, single hairline border, clear separation. */
 const StatTile = ({ label, value, hint, emphasis }) => (
   <div
     className={cn(
-      'rounded-xl border px-3 py-3 sm:px-4',
-      emphasis
-        ? 'border-brand-primary/35 bg-brand-primary/10'
-        : 'border-brand-muted/25 bg-brand-light/40'
+      'flex flex-col rounded-lg border bg-white px-4 py-4',
+      emphasis ? 'border-brand-primary border-l-[3px] border-l-brand-primary shadow-sm' : 'border-brand-darkest/12'
     )}
   >
-    <p className="text-[10px] font-bold uppercase tracking-wide text-brand-muted">{label}</p>
-    <p className={cn('mt-1 text-lg font-bold tabular-nums text-brand-darkest', emphasis && 'text-brand-primary')}>
+    <p className="text-xs font-medium text-brand-muted">{label}</p>
+    <p
+      className={cn(
+        'mt-2 text-xl font-semibold tabular-nums tracking-tight text-brand-darkest',
+        emphasis && 'text-brand-primary'
+      )}
+    >
       {value}
     </p>
-    {hint ? <p className="mt-1 text-[11px] leading-snug text-brand-muted">{hint}</p> : null}
+    {hint ? (
+      <p className="mt-3 border-t border-brand-darkest/[0.06] pt-3 text-[11px] leading-relaxed text-brand-muted">
+        {hint}
+      </p>
+    ) : null}
   </div>
 )
 
@@ -79,18 +87,17 @@ const WorkerBenchmarkCard = ({
           : 'Below middle'
 
   return (
-    <div className="space-y-5">
-      <section className="rounded-2xl border border-brand-muted/25 bg-white p-4 shadow-sm sm:p-5">
-        <h2 className="text-lg font-semibold text-brand-darkest">Compare your pay</h2>
-        <p className="mt-1 text-sm text-brand-muted">
-          City numbers use <strong className="font-medium text-brand-darkest">verified</strong> shifts only, same app
-          as selected, in your city, over roughly the last {periodDays} days. We take each rider&apos;s overall hourly
-          (total net ÷ total hours), then show the <strong className="font-medium text-brand-darkest">middle rider</strong>{' '}
-          (median) — not one stuck shift.
+    <div className="space-y-8">
+      <section className="border-b border-brand-darkest/10 pb-8">
+        <h2 className="text-base font-semibold text-brand-darkest">Compare your pay</h2>
+        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-brand-muted">
+          City numbers use <span className="text-brand-darkest">verified</span> shifts only, same app as selected, in
+          your city, over roughly the last {periodDays} days. Each rider&apos;s hourly is total net ÷ total hours; the
+          city <span className="text-brand-darkest">middle rider</span> is the median of those — not one odd shift.
         </p>
 
-        <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div className="min-w-[200px]">
+        <div className="mt-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="w-full max-w-xs">
             <Label htmlFor="benchmark_platform" className="text-xs font-medium text-brand-dark">
               App / platform
             </Label>
@@ -110,126 +117,122 @@ const WorkerBenchmarkCard = ({
 
           <div
             className={cn(
-              'rounded-xl border px-3 py-2 text-sm',
+              'rounded-lg border px-3 py-2.5 text-sm',
               cityZone
-                ? 'border-brand-muted/30 bg-brand-light/50 text-brand-darkest'
-                : 'border-amber-300/60 bg-amber-50 text-amber-950'
+                ? 'border-brand-darkest/12 bg-white text-brand-darkest'
+                : 'border-amber-200 bg-amber-50/80 text-amber-950'
             )}
           >
-            <p>
-              <span className="font-semibold">Your city:</span>{' '}
-              {cityZone || 'Add a city in your profile to load benchmarks.'}
-            </p>
+            <span className="font-medium text-brand-darkest">Your city</span>
+            <span className="text-brand-muted"> — </span>
+            {cityZone || 'Add a city in your profile to load benchmarks.'}
           </div>
         </div>
       </section>
 
       {benchmarkQuery.isLoading ? (
-        <div className="space-y-4 rounded-2xl border border-brand-muted/25 bg-white p-4">
-          <Skeleton className="h-6 w-64" />
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="space-y-6">
+          <Skeleton className="h-5 w-48 rounded-md" />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-24 rounded-xl" />
+              <Skeleton key={i} className="h-28 rounded-lg" />
             ))}
           </div>
-          <Skeleton className="h-80 rounded-xl" />
+          <Skeleton className="h-80 rounded-lg" />
         </div>
       ) : benchmarkQuery.isError ? (
-        <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-900">
+        <p className="rounded-lg border border-red-200 bg-white px-4 py-3 text-sm text-red-800">
           {parseApiError(benchmarkQuery.error)}
         </p>
       ) : !cityZone ? (
-        <p className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+        <p className="rounded-lg border border-amber-200 bg-white px-4 py-3 text-sm text-amber-950">
           Set your city in your profile so we can load other riders&apos; stats for your area.
         </p>
       ) : riders < 3 ? (
-        <div className="rounded-2xl border border-brand-muted/30 bg-brand-light/40 p-4 text-sm text-brand-dark">
-          <p className="font-semibold text-brand-darkest">Not enough riders to compare yet</p>
+        <div className="rounded-lg border border-brand-darkest/12 bg-white p-4 text-sm">
+          <p className="font-medium text-brand-darkest">Not enough riders to compare yet</p>
           <p className="mt-2 text-brand-muted">
-            We need a few verified riders in <strong>{cityZone}</strong> on {selectedPlatform} in the last ~{periodDays}{' '}
-            days. Check back later, or try another app from the list if you work on more than one.
+            We need a few verified riders in <span className="text-brand-darkest">{cityZone}</span> on{' '}
+            {selectedPlatform} in the last ~{periodDays} days. Try again later or another app if you use several.
           </p>
-          <p className="mt-2 text-xs text-brand-muted">
-            Current sample: {riders} rider{riders === 1 ? '' : 's'}, {shifts} verified shift
+          <p className="mt-3 text-xs text-brand-muted">
+            Sample now: {riders} rider{riders === 1 ? '' : 's'}, {shifts} verified shift
             {shifts === 1 ? '' : 's'}.
           </p>
         </div>
       ) : (
         <>
-          <div className="flex flex-wrap items-center gap-2 text-xs text-brand-muted">
-            <span className="inline-flex items-center gap-1 rounded-full border border-brand-muted/35 bg-white px-2.5 py-1 font-semibold text-brand-darkest">
-              <BarChart3 size={13} aria-hidden />
-              Your chart: {chartData.length} verified shift{chartData.length === 1 ? '' : 's'}
+          <p className="text-xs text-brand-muted">
+            <span className="inline-flex items-center gap-1.5 font-medium text-brand-darkest">
+              <BarChart3 className="h-3.5 w-3.5 text-brand-muted" aria-hidden />
+              Chart uses {chartData.length} verified shift{chartData.length === 1 ? '' : 's'} on this app
             </span>
-          </div>
+          </p>
 
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             <StatTile
               label="Your hourly (this app)"
               value={myOverallHourly != null ? formatCurrency(myOverallHourly) : '—'}
-              hint="All your verified shifts on this app (total net ÷ total hours)."
+              hint="Your verified shifts: total net ÷ total hours."
               emphasis
             />
             <StatTile
               label="City middle rider"
               value={formatCurrency(median)}
-              hint="Half of riders in your city earn more per hour than this, half earn less (same rules as above)."
+              hint="Half of riders earn more per hour than this, half earn less."
             />
             <StatTile
               label="City average rider"
               value={formatCurrency(average)}
-              hint="Simple average across riders — can be pulled up by a few high earners."
+              hint="Mean across riders; a few high earners can pull this up."
             />
             <StatTile
               label="Typical range (middle 50%)"
-              value={
-                p25 > 0 && p75 > 0 ? `${formatCurrency(p25)} – ${formatCurrency(p75)}` : '—'
-              }
-              hint="Most riders fall between these hourly amounts (not the very lowest or highest)."
+              value={p25 > 0 && p75 > 0 ? `${formatCurrency(p25)} – ${formatCurrency(p75)}` : '—'}
+              hint="Most riders fall between these amounts."
             />
             <StatTile
               label="Based on"
               value={`${riders} riders`}
-              hint={`${shifts} verified shifts over ~${periodDays} days in ${cityZone}.`}
+              hint={`${shifts} verified shifts, ~${periodDays} days, ${cityZone}.`}
             />
             <StatTile
               label="Quick read"
               value={quickLabel}
-              hint={vsCity || 'Log verified shifts on this app to see how you stack up.'}
+              hint={vsCity || 'Add verified shifts on this app to compare.'}
             />
           </div>
 
-          <div className="flex gap-2 rounded-xl border border-brand-primary/20 bg-brand-primary/5 px-3 py-2 text-xs text-brand-darkest">
+          <div className="flex gap-3 rounded-lg border border-brand-darkest/10 border-l-[3px] border-l-brand-primary bg-white px-4 py-3 text-xs leading-relaxed text-brand-dark">
             <Info className="mt-0.5 h-4 w-4 shrink-0 text-brand-primary" aria-hidden />
-            <p>
-              The <strong>orange line</strong> in the chart is flat on purpose: it is one city-wide &quot;middle
-              rider&quot; number, not a day-by-day city average. <strong>Blue</strong> is your hourly on each verified
-              shift.
+            <p className="text-brand-muted">
+              <span className="font-medium text-brand-darkest">Chart:</span> Orange line is flat on purpose — one
+              city-wide middle-rider value. Blue is your hourly per verified shift.
             </p>
           </div>
 
           {chartData.length === 0 ? (
-            <p className="rounded-xl border border-brand-muted/35 bg-brand-light/70 px-4 py-3 text-sm text-brand-muted">
+            <p className="rounded-lg border border-brand-darkest/10 bg-white px-4 py-3 text-sm text-brand-muted">
               No verified shifts for {selectedPlatform} yet. Add or get shifts verified to see your line.
             </p>
           ) : (
-            <div className="h-[min(22rem,50vh)] w-full min-h-[240px] overflow-hidden rounded-2xl border border-brand-muted/25 bg-brand-light/50 p-2 sm:p-3">
+            <div className="h-[min(22rem,50vh)] w-full min-h-[240px] rounded-lg border border-brand-darkest/12 bg-white p-3 sm:p-4">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData} margin={{ top: 12, right: 12, left: 4, bottom: 8 }}>
-                  <CartesianGrid strokeDasharray="4 4" stroke="var(--color-muted)" opacity={0.35} />
+                  <CartesianGrid strokeDasharray="4 4" stroke="var(--color-muted)" opacity={0.25} />
                   <XAxis dataKey="dateLabel" tick={{ fill: 'var(--color-darkest)', fontSize: 11 }} />
                   <YAxis
                     tick={{ fill: 'var(--color-darkest)', fontSize: 11 }}
-                    tickFormatter={(v) => `PKR ${v}`}
-                    width={56}
+                    tickFormatter={(v) => `${v}`}
+                    width={44}
                   />
                   <Tooltip
                     contentStyle={{
-                      background: 'var(--color-light)',
-                      border: '1px solid var(--color-muted)',
-                      borderRadius: '12px',
+                      background: '#fff',
+                      border: '1px solid rgba(33, 42, 49, 0.12)',
+                      borderRadius: '8px',
                       color: 'var(--color-darkest)',
-                      boxShadow: '0 12px 24px rgba(33, 42, 49, 0.2)',
+                      boxShadow: '0 4px 20px rgba(33, 42, 49, 0.08)',
                     }}
                     formatter={(value, name) => [formatCurrency(value), name]}
                   />
@@ -239,7 +242,7 @@ const WorkerBenchmarkCard = ({
                     dataKey="myHourly"
                     name="My hourly (this shift)"
                     stroke="var(--color-primary)"
-                    strokeWidth={2.6}
+                    strokeWidth={2}
                     dot={{ r: 2 }}
                     activeDot={{ r: 5 }}
                   />
@@ -248,7 +251,7 @@ const WorkerBenchmarkCard = ({
                     dataKey="cityTypical"
                     name="City middle rider (flat)"
                     stroke="#c2410c"
-                    strokeWidth={2.2}
+                    strokeWidth={2}
                     strokeDasharray="6 4"
                     dot={false}
                     activeDot={{ r: 3 }}
