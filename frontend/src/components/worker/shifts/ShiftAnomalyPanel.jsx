@@ -1,12 +1,22 @@
 import { AlertTriangle, CheckCircle2, Info, Loader2 } from 'lucide-react'
 
-import { formatPercent } from '@/utils/formatters'
+import { formatCurrency, formatPercent } from '@/utils/formatters'
 import { cn } from '@/lib/utils'
 
-/** Turn backend wording into short, rider-friendly copy when we recognize it. */
+/** Backend joins net + deduction text; drop the deduction part so we don't say it twice. */
+const stripDeductionFromCombinedExplanation = (fullExplanation, deduction) => {
+  let text = String(fullExplanation || '').trim()
+  const ded = deduction?.explanation?.trim()
+  if (!ded || !text) return text
+  if (text.includes(ded)) {
+    text = text.replace(ded, '').replace(/\s+/g, ' ').trim()
+  }
+  return text.replace(/\s+\./g, '.').replace(/^[\s.]+/, '')
+}
+
 const friendlyInsufficientMessage = (reason) => {
   if (!reason || !String(reason).trim()) {
-    return 'We need more of your verified shifts on this app before we can tell if this day looks normal for you.'
+    return 'We need more verified shifts on this app before we can compare. Those shifts must be on earlier dates than the one you picked.'
   }
 
   const match = String(reason).match(
@@ -14,10 +24,64 @@ const friendlyInsufficientMessage = (reason) => {
   )
   if (match) {
     const [, need, have] = match
-    return `We compare a new day to your past verified shifts on the same app. You need at least ${need} in your history for a fair comparison — right now we have ${have}. Add or get more shifts verified, then try again.`
+    return `To compare this date, we need at least ${need} verified shifts on this app from dates before that day. Right now we only have ${have}. Add or import shifts on earlier days, get them verified, then try again—or pick a later date once you have enough history.`
   }
 
   return reason
+}
+
+/** Plain-language take-home vs usual (uses API means when present). */
+const takeHomeInPlainLanguage = ({ flagged, currentNet, meanNet, strippedBackend }) => {
+  const cur = currentNet != null && Number.isFinite(Number(currentNet)) ? Number(currentNet) : null
+  const mean = meanNet != null && Number.isFinite(Number(meanNet)) ? Number(meanNet) : null
+
+  if (flagged) {
+    let msg =
+      "This shift's take-home looks noticeably lower than what you usually get on verified days for this app. Double-check the amounts or your trip summary."
+    if (cur != null && mean != null) {
+      msg += ` On similar past shifts you averaged about ${formatCurrency(mean)} net; this one is ${formatCurrency(cur)}.`
+    }
+    return msg
+  }
+
+  let msg =
+    "This shift's take-home doesn't look unusually low compared with your other verified shifts on this app."
+  if (cur != null && mean != null) {
+    msg += ` On those you averaged about ${formatCurrency(mean)} net; here it's ${formatCurrency(cur)}.`
+  } else if (strippedBackend) {
+    const cleaned = String(strippedBackend)
+      .replace(/z-score\s+[-\d.]+/gi, '')
+      .replace(/baseline mean\s+[\d.]+%/gi, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+    if (cleaned.length > 20) msg = cleaned
+  }
+
+  return msg
+}
+
+/** Fees/deductions without z-score jargon. */
+const feesInPlainLanguage = (d) => {
+  if (!d?.evaluated) return null
+  const curR = d.current_deduction_ratio
+  if (curR == null || !Number.isFinite(Number(curR))) {
+    return String(d.explanation || 'Fees could not be compared.').replace(/z-score\s+[-\d.]+/gi, '').trim()
+  }
+
+  const curPct = formatPercent(Number(curR) * 100)
+  const meanR = d.mean_deduction_ratio
+  const meanPct =
+    meanR != null && Number.isFinite(Number(meanR)) ? formatPercent(Number(meanR) * 100) : null
+
+  if (d.is_anomaly) {
+    return meanPct
+      ? `Platform fees and deductions are a bigger slice of gross than usual for you (${curPct} vs about ${meanPct} on past verified shifts). Worth a second look.`
+      : `Platform fees and deductions are a bigger slice of gross than usual for you (${curPct}). Worth a second look.`
+  }
+
+  return meanPct
+    ? `Platform fees and deductions here are ${curPct} of gross—close to what you usually see (${meanPct} on past verified shifts).`
+    : `Platform fees and deductions here are ${curPct} of gross—similar to your past verified shifts.`
 }
 
 const ShiftAnomalyPanel = ({ anomalyResult, analyzePending }) => {
@@ -30,10 +94,10 @@ const ShiftAnomalyPanel = ({ anomalyResult, analyzePending }) => {
       >
         <p className="flex items-center gap-2 text-sm font-medium text-brand-darkest">
           <Loader2 className="h-4 w-4 shrink-0 animate-spin text-brand-primary" aria-hidden />
-          Comparing this shift to your past verified days on the same app…
+          Checking your pay against your verified history…
         </p>
         <p className="mt-1 text-xs text-brand-muted">
-          This only uses shifts that are already verified — not drafts or other apps.
+          We only use shifts that are already verified on this app, from dates before the one you entered.
         </p>
       </div>
     )
@@ -42,11 +106,11 @@ const ShiftAnomalyPanel = ({ anomalyResult, analyzePending }) => {
   if (!anomalyResult) {
     return (
       <div className="rounded-xl border border-dashed border-brand-muted/40 bg-brand-light/40 px-4 py-3 text-sm text-brand-muted">
-        <p className="font-medium text-brand-darkest/80">Pay check</p>
+        <p className="font-medium text-brand-darkest/80">Quick pay check</p>
         <p className="mt-1 text-xs leading-relaxed">
-          Enter this shift&apos;s amounts, then tap{' '}
-          <span className="font-semibold text-brand-darkest">Compare to my usual pay</span>. You don&apos;t need a
-          screenshot for that — only when you save the shift.
+          Fill in this shift&apos;s numbers, then tap{' '}
+          <span className="font-semibold text-brand-darkest">Compare to my usual pay</span>. No screenshot needed for
+          that—only when you save the shift.
         </p>
       </div>
     )
@@ -66,18 +130,31 @@ const ShiftAnomalyPanel = ({ anomalyResult, analyzePending }) => {
     anomalyResult.percent_drop != null && Number.isFinite(Number(anomalyResult.percent_drop))
   const dropPct = hasValidDrop ? Number(anomalyResult.percent_drop) : null
 
+  const strippedNetOnly = insufficient
+    ? ''
+    : stripDeductionFromCombinedExplanation(anomalyResult.explanation, deduction)
+
   const summary = insufficient
     ? friendlyInsufficientMessage(anomalyResult.insufficient_reason)
-    : flagged
-      ? anomalyResult.explanation ||
-        'This day looks noticeably lower than what you usually take home on verified shifts for this app. Double-check the numbers or your trip summary if something feels off.'
-      : anomalyResult.explanation ||
-        'This day looks in line with what you usually earn on verified shifts for this app.'
+    : takeHomeInPlainLanguage({
+        flagged,
+        currentNet: anomalyResult.current_net_received,
+        meanNet: anomalyResult.history_mean_net_received,
+        strippedBackend: strippedNetOnly,
+      })
 
-  const extraPayContext =
-    ready && !insufficient && dropPct != null && dropPct >= 1 && !summary.includes('%')
-      ? ` About ${formatPercent(dropPct)} below your usual take-home for this app.`
-      : ''
+  const showDropExtra =
+    ready &&
+    !insufficient &&
+    dropPct != null &&
+    dropPct >= 1 &&
+    !summary.includes('%') &&
+    (anomalyResult.history_mean_net_received == null || anomalyResult.current_net_received == null)
+
+  const extraPayContext = showDropExtra ? ` About ${formatPercent(dropPct)} below your usual take-home.` : ''
+
+  const deductionPlain = feesInPlainLanguage(deduction)
+  const showDeductionBlock = Boolean(deductionPlain && deduction?.evaluated)
 
   return (
     <div
@@ -100,10 +177,10 @@ const ShiftAnomalyPanel = ({ anomalyResult, analyzePending }) => {
         )}
         <span className="text-xs font-bold uppercase tracking-wide opacity-90">
           {insufficient
-            ? 'Not enough past shifts yet'
+            ? 'Need more history first'
             : flagged
-              ? 'Lower than your usual'
-              : 'Looks normal for you'}
+              ? 'Looks lower than usual'
+              : 'Looks normal'}
         </span>
       </div>
       <p className="mt-2 leading-relaxed">
@@ -113,20 +190,22 @@ const ShiftAnomalyPanel = ({ anomalyResult, analyzePending }) => {
 
       {ready && historyCount != null ? (
         <p className={cn('mt-2 text-xs leading-relaxed opacity-85', flagged && 'text-brand-light/90')}>
-          We used {historyCount} of your earlier verified {historyCount === 1 ? 'shift' : 'shifts'} on this app as
-          the reference.
+          This used <span className="font-semibold text-current">{historyCount}</span> verified{' '}
+          {historyCount === 1 ? 'shift' : 'shifts'} on this app from <span className="font-semibold">earlier dates</span>{' '}
+          than the one you&apos;re checking—not including the same calendar day.
         </p>
       ) : null}
 
-      {deduction?.evaluated ? (
+      {showDeductionBlock ? (
         <p
           className={cn(
-            'mt-2 rounded-lg px-2 py-1.5 text-xs leading-relaxed',
-            deduction.is_anomaly ? 'bg-black/10 font-medium' : 'opacity-90'
+            'mt-2 rounded-lg border border-black/5 bg-black/[0.03] px-3 py-2 text-xs leading-relaxed',
+            flagged && 'border-white/10 bg-black/20',
+            deduction?.is_anomaly && 'font-medium'
           )}
         >
-          <span className="font-semibold">Fees and deductions: </span>
-          {deduction.explanation}
+          <span className="font-semibold">Platform cuts: </span>
+          {deductionPlain}
         </p>
       ) : null}
 

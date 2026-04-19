@@ -37,8 +37,8 @@ const ShiftFormCard = ({
       <div className="border-b border-brand-muted/15 pb-4">
         <h2 className="text-lg font-semibold text-brand-darkest">Add a shift</h2>
         <p className="mt-1 text-sm text-brand-muted">
-          Net pay updates as you type. Saving stores the shift; you can compare pay to your usual days anytime using the
-          numbers below — no screenshot needed for that.
+          Net pay updates as you type. You can run a quick pay check below without a screenshot; you only need proof when
+          you hit Save.
         </p>
       </div>
 
@@ -66,7 +66,10 @@ const ShiftFormCard = ({
                 {errors.platform.message}
               </p>
             ) : (
-              <p className="text-xs text-brand-muted">Compared only against verified shifts on this app.</p>
+              <p className="text-xs text-brand-muted">
+                Pay check only uses shifts that are already <strong className="font-semibold">verified</strong> on this
+                app, and only from <strong className="font-semibold">dates before</strong> the one you pick.
+              </p>
             )}
           </div>
 
@@ -86,7 +89,12 @@ const ShiftFormCard = ({
               <p id="date-error" className="text-xs font-medium text-red-600" role="alert">
                 {errors.date.message}
               </p>
-            ) : null}
+            ) : (
+              <p className="text-xs text-brand-muted">
+                Use the real day this shift belongs to. To compare &quot;today&quot;, your older verified shifts should
+                be logged on earlier calendar days.
+              </p>
+            )}
           </div>
         </div>
 

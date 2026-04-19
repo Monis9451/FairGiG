@@ -59,6 +59,11 @@ def _load_verified_history_from_db(
     history_days: int,
     history_limit: int,
 ) -> list[ShiftSample]:
+    """Verified baseline shifts strictly **before** ``current_date`` (same platform when set).
+
+    To compare “today”, log or import history on **earlier** calendar days first; those
+    rows then count toward the minimum history size.
+    """
     supabase = get_supabase_client()
 
     since_date = (current_date - timedelta(days=history_days)).isoformat()
