@@ -57,7 +57,8 @@ const truthy = (value) => {
 };
 
 export const env = {
-  port: toNumber(process.env.PORT, 5000),
+  /** Railway sets PORT; must be > 0 (avoid binding to random port 0). */
+  port: toPositiveNumber(process.env.PORT, 5000),
   nodeEnv: process.env.NODE_ENV || "development",
   /**
    * When true, auth / grievance / analytics / certificates handlers run in this process

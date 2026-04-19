@@ -21,6 +21,22 @@ import { downstreamNodeProxy } from "./src/middleware/downstreamNodeProxy.js";
 
 const jsonBodyLimited = express.json({ limit: "100kb" });
 
+const gatewayDir = path.dirname(fileURLToPath(import.meta.url));
+const monorepoAuthPackageJson = path.join(gatewayDir, "..", "service-auth-node", "package.json");
+
+if (env.inlineNodeServices && !fs.existsSync(monorepoAuthPackageJson)) {
+  console.error(
+    "[FairGiG] INLINE_NODE_SERVICES=1 but sibling folder service-auth-node/ is missing from this deploy."
+  );
+  console.error(
+    "[FairGiG] Fix Railway: Settings → set Root Directory to empty (entire repo), not service-api-gateway-node only."
+  );
+  console.error(
+    "[FairGiG] Or unset INLINE_NODE_SERVICES and set AUTH_SERVICE_URL, GRIEVANCE_SERVICE_URL, etc."
+  );
+  process.exit(1);
+}
+
 const inlineBundles = env.inlineNodeServices
   ? await (async () => {
       const [

@@ -1,0 +1,7 @@
+# FairGiG — one Node service with INLINE_NODE_SERVICES=1:
+# Railway → Service → Settings → Root Directory: empty (entire repo).
+# https://docs.railway.com/deploy/config-as-code
+[deploy]
+startCommand = "npm start"
+healthcheckPath = "/health"
+healthcheckTimeout = 120

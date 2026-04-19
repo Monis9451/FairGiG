@@ -150,6 +150,10 @@ Terminal G — API gateway (5000), normal split mode:
 
 Railway free / few services on the host — one Node process (no extra microservice slots):
 ------------------------------------------------------------------
+Railway → your Node service → Settings → Root Directory: leave empty (entire monorepo).
+If Root Directory is only `service-api-gateway-node`, `INLINE_NODE_SERVICES=1` cannot load
+sibling folders and the deploy will fail healthchecks.
+
 From repo root: `npm install` (uses `package.json` workspaces), then start the same gateway
 with in-process Node routes:
 
