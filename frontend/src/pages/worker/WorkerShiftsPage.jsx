@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 
-import WorkerPageHeader from '@/components/worker/WorkerPageHeader'
 import ShiftFormCard from '@/components/worker/shifts/ShiftFormCard'
 import CsvImportCard from '@/components/worker/shifts/CsvImportCard'
 import ShiftLogsTable from '@/components/worker/shifts/ShiftLogsTable'
@@ -112,9 +111,14 @@ const WorkerShiftsPage = () => {
       const explanation =
         data?.explanation ||
         data?.insufficient_reason ||
-        'Anomaly analysis completed, but no explanation was returned.'
+        'Analysis finished.'
 
-      if (data?.ready === false || data?.is_anomaly) {
+      if (data?.ready === false) {
+        showInfoToast(explanation)
+        return
+      }
+
+      if (data?.is_anomaly) {
         showErrorToast(explanation)
         return
       }
@@ -137,7 +141,7 @@ const WorkerShiftsPage = () => {
       queryClient.invalidateQueries({ queryKey: ['worker-shift-logs'] })
 
       // Do not auto-call anomaly here: it doubles latency and fails the whole flow with 502/504
-      // if the anomaly service is down or slow. Workers can run "Check anomaly" when needed.
+      // if the anomaly service is down or slow. Workers can run pay comparison when needed.
 
       setScreenshotFile(null)
       setUploadedScreenshot(null)
@@ -248,9 +252,9 @@ const WorkerShiftsPage = () => {
   })
 
   const onAnalyzeCurrentShift = async () => {
-    const valid = await trigger(['platform', 'date', 'gross_earned', 'deductions', 'net_received'])
+    const valid = await trigger(['platform', 'date', 'hours_worked', 'gross_earned', 'deductions', 'net_received'])
     if (!valid) {
-      showErrorToast('Fix form validation errors before anomaly analysis.')
+      showErrorToast('Fix the highlighted fields before comparing to your usual pay.')
       return
     }
 
@@ -274,15 +278,22 @@ const WorkerShiftsPage = () => {
   }
 
   return (
-    <div className="space-y-6">
-      <WorkerPageHeader
-        badge="Shift Operations"
-        title="Log, Upload, Analyze"
-        description="Capture complete evidence, save faster, and run anomaly checks without leaving the workflow."
-        summary={`${shiftItems.length} logs tracked · ${pendingCount} pending · ${verifiedCount} verified`}
-      />
+    <div className="mx-auto max-w-6xl space-y-5 pb-8">
+      <header className="flex flex-col gap-3 border-b border-brand-muted/20 pb-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight text-brand-darkest sm:text-2xl">Shifts</h1>
+          <p className="mt-1 max-w-xl text-sm text-brand-muted">
+            Log earnings with proof, sanity-check against your verified history, or bulk import.
+          </p>
+        </div>
+        <p className="text-xs tabular-nums text-brand-muted sm:text-right">
+          <span className="font-semibold text-brand-darkest">{shiftItems.length}</span> total ·{' '}
+          <span className="font-semibold text-brand-darkest">{verifiedCount}</span> verified ·{' '}
+          <span className="font-semibold text-brand-darkest">{pendingCount}</span> pending
+        </p>
+      </header>
 
-      <section className="grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
+      <section className="grid gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.75fr)]">
         <ShiftFormCard
           register={register}
           errors={errors}
@@ -298,6 +309,7 @@ const WorkerShiftsPage = () => {
           savePending={createShiftMutation.isPending}
           analyzePending={analyzeMutation.isPending}
           onAnalyzeCurrentShift={onAnalyzeCurrentShift}
+          anomalyResult={anomalyResult}
         />
 
         <CsvImportCard
@@ -305,8 +317,6 @@ const WorkerShiftsPage = () => {
           setCsvFile={setCsvFile}
           onImportCsv={onImportCsv}
           csvImportPending={csvImportMutation.isPending}
-          anomalyResult={anomalyResult}
-          analyzePending={analyzeMutation.isPending}
         />
       </section>
 

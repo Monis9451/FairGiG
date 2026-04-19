@@ -86,16 +86,19 @@ export const parseTagsFromInput = (value) => {
     .filter(Boolean)
 }
 
+const roundMoney = (value) => Number(Number(value || 0).toFixed(2))
+
 export const buildAnalyzePayload = (currentShift) => {
   const normalizedCurrentPlatform = normalizePlatformName(currentShift.platform)
 
   return {
+    platform: normalizedCurrentPlatform,
     current_shift: {
       date: currentShift.date,
       platform: normalizedCurrentPlatform,
-      gross_earned: Number(currentShift.gross_earned || 0),
-      deductions: Number(currentShift.deductions || 0),
-      net_received: Number(currentShift.net_received || 0),
+      gross_earned: roundMoney(currentShift.gross_earned),
+      deductions: roundMoney(currentShift.deductions),
+      net_received: roundMoney(currentShift.net_received),
     },
   }
 }

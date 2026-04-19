@@ -32,7 +32,7 @@ const WorkerStatsCards = ({ stats, isLoading, riderMode = false }) => {
         {
           key: 'total',
           label: 'Total shifts',
-          hint: 'Jo aap ne save kiye',
+          hint: 'Shifts you saved',
           value: stats.total,
           icon: FileStack,
           tone: 'from-brand-darkest/15 to-brand-dark/5',
@@ -40,7 +40,7 @@ const WorkerStatsCards = ({ stats, isLoading, riderMode = false }) => {
         {
           key: 'verified',
           label: 'Verified',
-          hint: 'Verifier ne clear kiye',
+          hint: 'Approved by verifier',
           value: stats.verified,
           icon: CheckCircle2,
           tone: 'from-emerald-600/20 to-emerald-500/8',
@@ -48,7 +48,7 @@ const WorkerStatsCards = ({ stats, isLoading, riderMode = false }) => {
         {
           key: 'pending',
           label: 'Waiting',
-          hint: 'Abhi check honay wale',
+          hint: 'Awaiting review',
           value: stats.pending,
           icon: Clock3,
           tone: 'from-amber-400/25 to-amber-200/15',
@@ -56,7 +56,7 @@ const WorkerStatsCards = ({ stats, isLoading, riderMode = false }) => {
         {
           key: 'flagged',
           label: 'Need fix',
-          hint: 'Screenshot / detail dubara',
+          hint: 'Update screenshot or details',
           value: stats.flagged,
           icon: AlertTriangle,
           tone: 'from-rose-500/25 to-rose-200/15',
@@ -64,7 +64,7 @@ const WorkerStatsCards = ({ stats, isLoading, riderMode = false }) => {
         {
           key: 'unverifiable',
           label: "Can't verify",
-          hint: 'Proof clear nahi tha',
+          hint: 'Proof could not be verified',
           value: stats.unverifiable,
           icon: ShieldAlert,
           tone: 'from-amber-300/35 to-amber-100/30',
@@ -72,7 +72,7 @@ const WorkerStatsCards = ({ stats, isLoading, riderMode = false }) => {
         {
           key: 'averageHourly',
           label: 'Avg per hour',
-          hint: 'Net ÷ hours (rough)',
+          hint: 'Net ÷ hours (approx.)',
           value: formatCurrency(stats.averageHourly),
           icon: Wallet,
           tone: 'from-brand-primary/22 to-brand-light/70',

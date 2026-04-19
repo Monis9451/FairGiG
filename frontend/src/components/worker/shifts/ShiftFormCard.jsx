@@ -1,15 +1,8 @@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import WorkerSectionCard from '@/components/worker/WorkerSectionCard'
-
-const selectClassName =
-  'h-11 w-full rounded-xl border border-brand-primary/35 bg-brand-light/90 px-3 text-sm text-brand-darkest shadow-sm transition-all duration-200 focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/30'
-
-const fieldInputClassName =
-  'h-11 rounded-xl border border-brand-primary/35 bg-brand-light/90 shadow-sm transition-all duration-200 focus:border-brand-primary focus:ring-brand-primary/30'
-
-const fieldErrorClassName = 'mt-1.5 text-xs font-medium text-brand-dark'
+import ShiftAnomalyPanel from '@/components/worker/shifts/ShiftAnomalyPanel'
+import { cn } from '@/lib/utils'
 
 const ShiftFormCard = ({
   register,
@@ -26,188 +19,244 @@ const ShiftFormCard = ({
   savePending,
   analyzePending,
   onAnalyzeCurrentShift,
+  anomalyResult,
 }) => {
   const shiftSaveInProgress = savePending || uploadScreenshotPending
+  const busy = shiftSaveInProgress || analyzePending
+
+  const fieldClass = (name) =>
+    cn(
+      'h-11 w-full rounded-lg border bg-white px-3 text-base text-brand-darkest transition-colors sm:text-sm',
+      errors[name]
+        ? 'border-red-400 focus-visible:ring-2 focus-visible:ring-red-400/40'
+        : 'border-brand-muted/40 focus-visible:border-brand-primary focus-visible:ring-2 focus-visible:ring-brand-primary/25'
+    )
 
   return (
-    <WorkerSectionCard
-      kicker="Shift Capture"
-      title="Log a Shift"
-      description="Submit one shift record with proof. Net received is auto-calculated for accuracy and speed."
-      contentClassName="space-y-5"
-    >
-      <form className="space-y-5" onSubmit={onSubmit}>
-        <div className="rounded-2xl border border-brand-muted/35 bg-brand-light/70 p-4 sm:p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-muted">Shift details</p>
+    <section className="rounded-2xl border border-brand-muted/25 bg-white p-4 shadow-sm sm:p-5">
+      <div className="border-b border-brand-muted/15 pb-4">
+        <h2 className="text-lg font-semibold text-brand-darkest">Add a shift</h2>
+        <p className="mt-1 text-sm text-brand-muted">
+          Net pay updates as you type. Saving stores the shift; you can compare pay to your usual days anytime using the
+          numbers below — no screenshot needed for that.
+        </p>
+      </div>
 
-          <div className="mt-3 grid gap-4 md:grid-cols-2">
-            <div>
-              <Label htmlFor="platform">Platform</Label>
-              <select
-                id="platform"
-                {...register('platform')}
-                className={selectClassName}
-              >
-                {platformOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-              {errors.platform ? <p className={fieldErrorClassName}>{errors.platform.message}</p> : null}
-            </div>
+      <form className="mt-5 space-y-5" onSubmit={onSubmit} noValidate>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="platform" className="text-xs font-medium text-brand-dark">
+              Platform
+            </Label>
+            <select
+              id="platform"
+              {...register('platform')}
+              className={fieldClass('platform')}
+              aria-invalid={errors.platform ? 'true' : 'false'}
+              aria-describedby={errors.platform ? 'platform-error' : undefined}
+            >
+              {platformOptions.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+            {errors.platform ? (
+              <p id="platform-error" className="text-xs font-medium text-red-600" role="alert">
+                {errors.platform.message}
+              </p>
+            ) : (
+              <p className="text-xs text-brand-muted">Compared only against verified shifts on this app.</p>
+            )}
+          </div>
 
-            <div>
-              <Label htmlFor="date">Date</Label>
-              <Input id="date" type="date" {...register('date')} className={fieldInputClassName} />
-              {errors.date ? <p className={fieldErrorClassName}>{errors.date.message}</p> : null}
-            </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="date" className="text-xs font-medium text-brand-dark">
+              Date
+            </Label>
+            <Input
+              id="date"
+              type="date"
+              {...register('date')}
+              className={fieldClass('date')}
+              aria-invalid={errors.date ? 'true' : 'false'}
+              aria-describedby={errors.date ? 'date-error' : undefined}
+            />
+            {errors.date ? (
+              <p id="date-error" className="text-xs font-medium text-red-600" role="alert">
+                {errors.date.message}
+              </p>
+            ) : null}
           </div>
         </div>
 
-        <div className="rounded-2xl border border-brand-muted/35 bg-brand-light/70 p-4 sm:p-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-muted">Earnings breakdown</p>
-
-          <div className="mt-3 grid gap-4 md:grid-cols-2">
-            <div>
-              <Label htmlFor="hours_worked">Hours Worked</Label>
-              <Input
-                id="hours_worked"
-                type="number"
-                step="0.1"
-                {...register('hours_worked')}
-                className={fieldInputClassName}
-              />
-              {errors.hours_worked ? (
-                <p className={fieldErrorClassName}>{errors.hours_worked.message}</p>
-              ) : null}
-            </div>
-
-            <div>
-              <Label htmlFor="gross_earned">Gross Earned</Label>
-              <Input
-                id="gross_earned"
-                type="number"
-                step="0.01"
-                {...register('gross_earned')}
-                className={fieldInputClassName}
-              />
-              {errors.gross_earned ? (
-                <p className={fieldErrorClassName}>{errors.gross_earned.message}</p>
-              ) : null}
-            </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="hours_worked" className="text-xs font-medium text-brand-dark">
+              Hours worked
+            </Label>
+            <Input
+              id="hours_worked"
+              type="number"
+              inputMode="decimal"
+              step="0.1"
+              min="0"
+              {...register('hours_worked')}
+              className={fieldClass('hours_worked')}
+              aria-invalid={errors.hours_worked ? 'true' : 'false'}
+              aria-describedby={errors.hours_worked ? 'hours-error' : 'hours-hint'}
+            />
+            {errors.hours_worked ? (
+              <p id="hours-error" className="text-xs font-medium text-red-600" role="alert">
+                {errors.hours_worked.message}
+              </p>
+            ) : (
+              <p id="hours-hint" className="text-xs text-brand-muted">
+                Between 0 and 24 hours.
+              </p>
+            )}
           </div>
 
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
-            <div>
-              <Label htmlFor="deductions">Deductions</Label>
-              <Input
-                id="deductions"
-                type="number"
-                step="0.01"
-                {...register('deductions')}
-                className={fieldInputClassName}
-              />
-              {errors.deductions ? (
-                <p className={fieldErrorClassName}>{errors.deductions.message}</p>
-              ) : null}
-            </div>
-
-            <div>
-              <Label htmlFor="net_received">Net Received</Label>
-              <Input
-                id="net_received"
-                type="number"
-                step="0.01"
-                {...register('net_received')}
-                readOnly
-                className="h-11 rounded-xl border border-brand-muted/45 bg-brand-muted/20 text-base font-semibold shadow-inner"
-              />
-            </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="gross_earned" className="text-xs font-medium text-brand-dark">
+              Gross earned
+            </Label>
+            <Input
+              id="gross_earned"
+              type="number"
+              inputMode="decimal"
+              step="0.01"
+              min="0"
+              {...register('gross_earned')}
+              className={fieldClass('gross_earned')}
+              aria-invalid={errors.gross_earned ? 'true' : 'false'}
+              aria-describedby={errors.gross_earned ? 'gross-error' : undefined}
+            />
+            {errors.gross_earned ? (
+              <p id="gross-error" className="text-xs font-medium text-red-600" role="alert">
+                {errors.gross_earned.message}
+              </p>
+            ) : null}
           </div>
         </div>
 
-        <div className="space-y-4 rounded-2xl border border-brand-muted/35 bg-brand-light/70 p-4 sm:p-5">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="deductions" className="text-xs font-medium text-brand-dark">
+              Deductions
+            </Label>
+            <Input
+              id="deductions"
+              type="number"
+              inputMode="decimal"
+              step="0.01"
+              min="0"
+              {...register('deductions')}
+              className={fieldClass('deductions')}
+              aria-invalid={errors.deductions ? 'true' : 'false'}
+              aria-describedby={errors.deductions ? 'deductions-error' : undefined}
+            />
+            {errors.deductions ? (
+              <p id="deductions-error" className="text-xs font-medium text-red-600" role="alert">
+                {errors.deductions.message}
+              </p>
+            ) : (
+              <p className="text-xs text-brand-muted">Cannot exceed gross.</p>
+            )}
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="net_received" className="text-xs font-medium text-brand-dark">
+              Net received
+            </Label>
+            <Input
+              id="net_received"
+              type="number"
+              step="0.01"
+              readOnly
+              {...register('net_received')}
+              className="h-11 rounded-lg border border-brand-muted/30 bg-brand-light/50 px-3 text-base font-semibold tabular-nums text-brand-darkest sm:text-sm"
+              aria-live="polite"
+            />
+            <p className="text-xs text-brand-muted">Gross − deductions (read-only).</p>
+          </div>
+        </div>
+
+        <div className="space-y-2 rounded-xl border border-brand-muted/25 bg-brand-light/30 p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-brand-muted">Proof Upload</p>
-            <span className="rounded-full border border-brand-muted/45 bg-brand-light px-2.5 py-1 text-xs font-medium text-brand-muted">
-              Required
+            <Label htmlFor="screenshot_file" className="text-xs font-medium text-brand-dark">
+              Proof screenshot
+            </Label>
+            <span className="rounded-md bg-brand-darkest/90 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-brand-light">
+              Required to save
             </span>
           </div>
-
-          <div className="rounded-xl border border-dashed border-brand-muted/55 bg-brand-light/70 p-4">
-            <Label htmlFor="screenshot_file">Shift Screenshot</Label>
-            <input
-              id="screenshot_file"
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              className="mt-1 block w-full rounded-xl border border-brand-primary/35 bg-brand-light px-3 py-2 text-sm text-brand-darkest shadow-sm file:mr-3 file:rounded-lg file:border-0 file:bg-brand-primary file:px-3 file:py-2 file:text-xs file:font-semibold file:text-brand-light hover:file:opacity-90"
-              onChange={(event) => onSelectScreenshotFile(event.target.files?.[0] || null)}
-            />
-            <p className="mt-2 text-xs text-brand-muted">
-              Allowed: JPG, PNG, WEBP up to {maxScreenshotMb} MB. Screenshot will auto-upload when you save shift.
-            </p>
-          </div>
-
-          <p className="text-sm font-medium text-brand-muted">
-            {uploadScreenshotPending
-              ? 'Uploading screenshot...'
-              : uploadedScreenshot?.secure_url
-                ? 'Screenshot uploaded and ready.'
-                : screenshotFile
-                  ? 'Screenshot selected. It will upload automatically on save.'
-                  : 'Select a screenshot before saving shift.'}
+          <input
+            id="screenshot_file"
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            className="block w-full text-sm text-brand-muted file:mr-3 file:rounded-lg file:border-0 file:bg-brand-primary file:px-3 file:py-2 file:text-xs file:font-semibold file:text-brand-light"
+            onChange={(event) => onSelectScreenshotFile(event.target.files?.[0] || null)}
+          />
+          <p className="text-xs text-brand-muted">
+            JPG, PNG, or WEBP · max {maxScreenshotMb} MB. Upload runs when you save.
           </p>
-
+          <p className="text-sm text-brand-darkest/90">
+            {uploadScreenshotPending
+              ? 'Uploading…'
+              : uploadedScreenshot?.secure_url
+                ? 'Ready to save.'
+                : screenshotFile
+                  ? 'File selected — will upload on save.'
+                  : 'Choose a file before saving.'}
+          </p>
           {screenshotPreviewUrl ? (
-            <div className="space-y-2">
-              <p className="text-xs uppercase tracking-wide text-brand-muted">Selected Preview</p>
-              <img
-                src={screenshotPreviewUrl}
-                alt="Selected shift screenshot preview"
-                className="h-44 w-full rounded-xl border border-brand-muted/45 bg-brand-light object-contain"
-                loading="lazy"
-              />
-            </div>
+            <img
+              src={screenshotPreviewUrl}
+              alt=""
+              className="max-h-40 w-full rounded-lg border border-brand-muted/30 object-contain"
+              loading="lazy"
+            />
           ) : null}
-
           {watchedScreenshotUrl ? (
             <a
               href={watchedScreenshotUrl}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex rounded-lg border border-brand-primary/35 bg-brand-primary/10 px-2.5 py-1 text-xs font-semibold text-brand-primary transition-all hover:bg-brand-primary/20"
+              className="inline-flex text-xs font-semibold text-brand-primary underline-offset-2 hover:underline"
             >
-              Open uploaded screenshot
+              Open current screenshot URL
             </a>
           ) : null}
-
           <input type="hidden" {...register('screenshot_url')} />
           {errors.screenshot_url ? (
-            <p className={fieldErrorClassName}>{errors.screenshot_url.message}</p>
+            <p className="text-xs font-medium text-red-600" role="alert">
+              {errors.screenshot_url.message}
+            </p>
           ) : null}
         </div>
 
-        <div className="flex flex-wrap gap-3 pt-1">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
           <Button
             type="submit"
-            className="inline-flex min-h-[44px] items-center rounded-xl border border-brand-primary bg-brand-primary px-4 py-2 text-sm font-semibold text-brand-light shadow-[0_10px_20px_rgba(18,78,102,0.2)] transition-all duration-200 hover:-translate-y-0.5 hover:opacity-95 disabled:translate-y-0 disabled:opacity-60"
+            className="h-12 w-full rounded-lg font-semibold sm:h-11 sm:w-auto sm:min-w-[140px]"
             disabled={shiftSaveInProgress}
           >
-            {shiftSaveInProgress ? 'Uploading + Saving...' : 'Save Shift'}
+            {shiftSaveInProgress ? 'Saving…' : 'Save shift'}
           </Button>
-
           <Button
             type="button"
-            className="inline-flex min-h-[44px] items-center rounded-xl border border-brand-muted bg-brand-light px-4 py-2 text-sm font-semibold text-brand-darkest shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-brand-light/80 disabled:translate-y-0 disabled:opacity-60"
+            className="h-12 w-full rounded-lg border-2 border-brand-muted/45 bg-white font-semibold text-brand-darkest hover:bg-brand-light/80 sm:h-11 sm:w-auto sm:min-w-[140px]"
             onClick={onAnalyzeCurrentShift}
-            disabled={analyzePending}
+            disabled={busy}
           >
-            {analyzePending ? 'Processing...' : 'Analyze Current Shift'}
+            {analyzePending ? 'Comparing…' : 'Compare to my usual pay'}
           </Button>
         </div>
+
+        <ShiftAnomalyPanel anomalyResult={anomalyResult} analyzePending={analyzePending} />
       </form>
-    </WorkerSectionCard>
+    </section>
   )
 }
 

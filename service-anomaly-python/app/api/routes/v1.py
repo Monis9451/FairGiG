@@ -259,7 +259,9 @@ def analyze(
         )
 
     result_platform = payload.current_shift.platform
-    history_platform_filter = payload.platform
+    # When clients omit `platform`, still scope history to the same platform as the shift
+    # so baselines are not diluted by other apps' earnings.
+    history_platform_filter = payload.platform or payload.current_shift.platform
 
     history: list[ShiftSample] = payload.history or []
     history_source = "payload_history"

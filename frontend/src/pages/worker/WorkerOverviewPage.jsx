@@ -67,7 +67,7 @@ const WorkerOverviewPage = () => {
     {
       to: '/community',
       title: 'Community',
-      subtitle: 'Tips doosray riders se',
+      subtitle: 'Tips from other riders',
       icon: MessageCircle,
       emphasis: 'card',
       className: 'border-brand-muted/40 bg-brand-light text-brand-darkest shadow-md',
@@ -75,7 +75,7 @@ const WorkerOverviewPage = () => {
     {
       to: '/worker/certificate',
       title: 'Earnings letter',
-      subtitle: 'Verified shifts ki report',
+      subtitle: 'Verified shifts summary',
       icon: FileText,
       emphasis: 'card',
       className: 'border-brand-muted/40 bg-brand-light text-brand-darkest shadow-md',
@@ -83,7 +83,7 @@ const WorkerOverviewPage = () => {
     {
       to: '/worker/benchmark',
       title: 'City pay check',
-      subtitle: 'Apni avg vs city',
+      subtitle: 'Your pay vs city average',
       icon: BarChart3,
       emphasis: 'card',
       className: 'border-brand-muted/40 bg-brand-light text-brand-darkest shadow-md',
@@ -91,7 +91,7 @@ const WorkerOverviewPage = () => {
     {
       to: '/worker/shifts',
       title: 'All my shifts',
-      subtitle: 'List & anomaly',
+      subtitle: 'List & compare pay',
       icon: ClipboardCheck,
       emphasis: 'card',
       className: 'border-brand-muted/40 bg-brand-light text-brand-darkest shadow-md',
@@ -117,12 +117,7 @@ const WorkerOverviewPage = () => {
               Rider home
             </div>
             <div>
-              <p className="text-sm font-medium text-white/70">
-                {greet} <span className="text-white/90">·</span>{' '}
-                <span lang="ur" className="text-white/80">
-                  Khush amdeed
-                </span>
-              </p>
+              <p className="text-sm font-medium text-white/70">{greet}</p>
               <h1 className="mt-1 text-2xl font-black tracking-tight sm:text-3xl lg:text-[2rem]">
                 {firstName}
               </h1>
@@ -133,8 +128,7 @@ const WorkerOverviewPage = () => {
                 </p>
               ) : null}
               <p className="mt-3 max-w-md text-sm leading-relaxed text-white/70">
-                Yahan se apni shifts add karein, verification dekhein, aur maslay raise karein — jaise ride-hailing apps par
-                earnings summary hota hai.
+                Add shifts, track verification, and report issues — like the earnings summary in ride-hailing apps.
               </p>
             </div>
           </div>
@@ -142,7 +136,7 @@ const WorkerOverviewPage = () => {
           <div className="flex w-full flex-col gap-3 sm:max-w-md lg:w-auto lg:min-w-[280px]">
             <div className="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur-sm">
               <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-200/90">Last 7 days</p>
-              <p className="text-[10px] text-white/55">Pichlay haftay — net jitna aap ne shifts mein likha</p>
+              <p className="text-[10px] text-white/55">Net amount from shifts you logged in the last 7 days</p>
               <p className="mt-2 text-3xl font-black tabular-nums tracking-tight sm:text-4xl">
                 {formatCurrency(metrics.weekNet)}
               </p>
@@ -192,10 +186,10 @@ const WorkerOverviewPage = () => {
           <div>
             <p className="font-bold">Action suggested</p>
             <p className="mt-1 text-amber-950/85">
-              Aap ke <strong>{metrics.needsAttention}</strong> shift logs abhi pending ya flagged hain — verifier ko clear
-              proof chahiye ho sakta hai.{' '}
+              <strong>{metrics.needsAttention}</strong> shift log{metrics.needsAttention === 1 ? ' is' : 's are'} still pending
+              or flagged — the verifier may need clearer proof.{' '}
               <Link to="/worker/shifts" className="font-bold underline underline-offset-2 hover:no-underline">
-                Shifts kholein
+                Open shifts
               </Link>
             </p>
           </div>
@@ -212,7 +206,7 @@ const WorkerOverviewPage = () => {
 
       <div>
         <h2 className="text-sm font-bold uppercase tracking-wide text-brand-muted">Quick actions</h2>
-        <p className="mt-1 text-xs text-brand-dark/75">Baray buttons — chalte phirte phone se asaani se</p>
+        <p className="mt-1 text-xs text-brand-dark/75">Large buttons — easy to tap on your phone</p>
         <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {quickActions.map((action) => (
             <Link
@@ -260,13 +254,13 @@ const WorkerOverviewPage = () => {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <h2 className="text-sm font-bold uppercase tracking-wide text-brand-muted">Recent shifts</h2>
-            <p className="mt-1 text-xs text-brand-dark/75">Sab se nayi pehle — platform aur status</p>
+            <p className="mt-1 text-xs text-brand-dark/75">Newest first — platform and status</p>
           </div>
           <Link
             to="/worker/shifts"
             className="inline-flex items-center gap-1 text-xs font-bold text-brand-primary hover:underline"
           >
-            Sab dekhein
+            View all
             <ArrowRight className="h-3.5 w-3.5" aria-hidden />
           </Link>
         </div>
@@ -279,7 +273,7 @@ const WorkerOverviewPage = () => {
           </div>
         ) : metrics.recent.length === 0 ? (
           <p className="mt-4 rounded-xl border border-dashed border-brand-muted/50 bg-brand-light/60 px-4 py-6 text-center text-sm text-brand-muted">
-            Abhi koi shift save nahi. Neeche &quot;Add today&apos;s shift&quot; se shuru karein.
+            No shifts saved yet. Start with &quot;Add today&apos;s shift&quot; above.
           </p>
         ) : (
           <ul className="mt-4 divide-y divide-brand-muted/25 rounded-2xl border border-brand-muted/25 bg-brand-light/80">
